@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import { url } from "../pages/Gifs/GifPage";
+import { settings } from "../settings";
 
 type AddGifProps = {
   onSaved: () => void;
@@ -17,7 +17,10 @@ export const AddGif = ({ onSaved }: AddGifProps) => {
 
     formData.append("file", file);
 
-    const response = await fetch(url, { method: "POST", body: formData });
+    const response = await fetch(`${settings.apiUrl}/gifs`, {
+      method: "POST",
+      body: formData,
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
@@ -26,6 +29,10 @@ export const AddGif = ({ onSaved }: AddGifProps) => {
     onSaved();
   };
   return (
-    <input type="file" accept="image/gif" onChange={handleFileChange}></input>
+    <input
+      type="file"
+      accept="image/gif, video/mp4"
+      onChange={handleFileChange}
+    ></input>
   );
 };
