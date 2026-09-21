@@ -1,3 +1,4 @@
+import "./GifPage.scss";
 import { useCallback, useEffect, useState } from "react";
 import { GifTable } from "../../components/GifTable";
 import { AddGif } from "../../components/AddGif";
@@ -25,9 +26,13 @@ export const GifPage = () => {
   }, [loadGifs]);
 
   return (
-    <>
-      <AddGif onSaved={loadGifs}></AddGif>
-      <GifTable gifs={gifs}></GifTable>
-    </>
+    <div className="gif-page">
+      <div>
+        <AddGif onSaved={loadGifs}></AddGif>
+      </div>
+      <div>
+        <GifTable gifs={gifs}></GifTable>
+      </div>
+    </div>
   );
 };

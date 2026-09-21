@@ -1,0 +1,18 @@
+.gif {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+}
+
+:fullscreen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: black;
+}
+
+:fullscreen .gif {
+  width: 100vw;
+  height: 100vw;
+  object-fit: contain;
+}
