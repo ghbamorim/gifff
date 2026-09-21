@@ -1,7 +1,7 @@
 from app.core.database import DbSession
 from app.schemas.gif import GifCreate, GifResponse
 from app.services.gif import GifService
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile, status, Response
 
 router = APIRouter(prefix="/gifs", tags=["Gif"])
 
@@ -27,3 +27,9 @@ async def get_gifs(db: DbSession) -> list[GifResponse]:
 async def get_gif(gif_id: int, db: DbSession) -> GifResponse:
     gif = await GifService.get_gif(gif_id, db)
     return GifResponse.model_validate(gif)
+
+
+@router.delete("/{gif_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_gif(gif_id: int, db: DbSession) -> Response:
+    await GifService.delete_gif(gif_id, db)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

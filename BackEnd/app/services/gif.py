@@ -26,3 +26,8 @@ class GifService:
             )
 
         return gif
+
+    @staticmethod
+    async def delete_gif(gif_id: int, db: AsyncSession) -> None:
+        gif = await GifService.get_gif(gif_id, db)
+        await db.delete(gif)
