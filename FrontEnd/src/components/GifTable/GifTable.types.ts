@@ -1,9 +1,10 @@
-import type { Gif } from "../../types/gif.types";
+import type { Gif, SortOrder } from "../../types/types";
 
 export type GifTableState = {
   gifs: Gif[];
   status: "idle" | "loading" | "saving" | "deleting" | "error";
   error: string | null;
+  sortOrder: SortOrder;
 };
 
 export type GifTableAction =
@@ -12,4 +13,5 @@ export type GifTableAction =
   | { type: "load_failed"; error: string }
   | { type: "saving_started" }
   | { type: "saving_succeeded"; gif: Gif }
-  | { type: "saving_failed"; error: string };
+  | { type: "saving_failed"; error: string }
+  | { type: "sort_order_change"; sortOrder: SortOrder };

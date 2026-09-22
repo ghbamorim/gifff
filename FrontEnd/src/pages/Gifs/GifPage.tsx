@@ -4,7 +4,7 @@ import "./GifPage.scss";
 import { useGifs } from "./useGifs";
 
 export const GifPage = () => {
-  const { gifs, status, error, saveGif } = useGifs();
+  const { gifs, status, error, saveGif, sortOrder, togleSortOrder } = useGifs();
 
   switch (status) {
     case "loading":
@@ -28,7 +28,11 @@ export const GifPage = () => {
         <AddGif onSave={saveGif}></AddGif>
       </div>
       <div>
-        <GifTable gifs={gifs}></GifTable>
+        <GifTable
+          gifs={gifs}
+          onTogleSortOrder={togleSortOrder}
+          sortOrder={sortOrder}
+        ></GifTable>
       </div>
     </div>
   );
