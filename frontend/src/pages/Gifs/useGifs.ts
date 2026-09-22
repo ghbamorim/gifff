@@ -3,8 +3,10 @@ import {
   gifTableReducer,
   initialState,
 } from "../../components/GifTable/GifTable.reducer";
-import { settings } from "../../settings";
+import { GifService } from "../../services/GifService";
 import type { Gif } from "../../types/types";
+
+const gifService = new GifService();
 
 export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
@@ -12,11 +14,7 @@ export const useGifs = () => {
   const loadGifs = useCallback(async () => {
     dispatch({ type: "load_started" });
     try {
-      const response = await fetch(`${settings.apiUrl}/gifs`);
-      const data: Gif[] = await response.json();
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
+      const data: Gif[] = await gifService.getAll();
       dispatch({ type: "load_succeeded", gifs: data });
     } catch (error) {
       dispatch({
@@ -29,17 +27,7 @@ export const useGifs = () => {
   const saveGif = async (formData: FormData) => {
     dispatch({ type: "saving_started" });
     try {
-      const response = await fetch(`${settings.apiUrl}/gifs`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-
-      const gif: Gif = await response.json();
-
+      const gif: Gif = await gifService.save(formData);
       dispatch({ type: "saving_succeeded", gif: gif });
     } catch (error) {
       dispatch({
@@ -66,13 +54,7 @@ export const useGifs = () => {
   const handleDelete = async (gif_id: number) => {
     dispatch({ type: "deleting_started" });
     try {
-      const response = await fetch(`${settings.apiUrl}/gifs/${gif_id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
+      await gifService.delete(gif_id);
 
       dispatch({ type: "deleting_succeeded", gif_id: gif_id });
     } catch (error) {
