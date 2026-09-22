@@ -1,27 +1,31 @@
-import "./GifPage.scss";
-import { useCallback, useEffect, useState } from "react";
-import { GifTable } from "../../components/GifTable/GifTable";
 import { AddGif } from "../../components/AddGif";
-import { settings } from "../../settings";
-import type { Gif } from "../../types/gif.types";
+import { GifTable } from "../../components/GifTable/GifTable";
+import "./GifPage.scss";
+import { useGifs } from "./useGifs";
 
 export const GifPage = () => {
-  const [gifs, setGifs] = useState<Gif[]>([]);
+  const { gifs, status, error, saveGif } = useGifs();
 
-  const loadGifs = useCallback(async () => {
-    const response = await fetch(`${settings.apiUrl}/gifs`);
-    const data: Gif[] = await response.json();
-    setGifs(data);
-  }, []);
+  switch (status) {
+    case "loading":
+      return <div>Loading</div>;
 
-  useEffect(() => {
-    loadGifs();
-  }, [loadGifs]);
+    case "saving":
+      return <div>Saving</div>;
+
+    case "deleting":
+      return <div>Saving</div>;
+
+    case "error":
+      return <div>{error}</div>;
+    default:
+      break;
+  }
 
   return (
     <div className="gif-page">
       <div>
-        <AddGif onSaved={loadGifs}></AddGif>
+        <AddGif onSave={saveGif}></AddGif>
       </div>
       <div>
         <GifTable gifs={gifs}></GifTable>
