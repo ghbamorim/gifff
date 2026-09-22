@@ -14,4 +14,7 @@ export type GifTableAction =
   | { type: "saving_started" }
   | { type: "saving_succeeded"; gif: Gif }
   | { type: "saving_failed"; error: string }
+  | { type: "deleting_started" }
+  | { type: "deleting_succeeded"; gif_id: number }
+  | { type: "deleting_failed"; error: string }
   | { type: "sort_order_change"; sortOrder: SortOrder };

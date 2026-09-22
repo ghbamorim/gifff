@@ -58,14 +58,34 @@ export const useGifs = () => {
     });
   }, [state.gifs, state.sortOrder]);
 
-  useEffect(() => {
-    loadGifs();
-  }, [loadGifs]);
-
   const togleSortOrder = () => {
     const newSortOrder = state.sortOrder === "asc" ? "desc" : "asc";
     dispatch({ type: "sort_order_change", sortOrder: newSortOrder });
   };
 
-  return { ...state, gifs: sortedGifs, togleSortOrder, saveGif };
+  const handleDelete = async (gif_id: number) => {
+    dispatch({ type: "deleting_started" });
+    try {
+      const response = await fetch(`${settings.apiUrl}/gifs/${gif_id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      dispatch({ type: "deleting_succeeded", gif_id: gif_id });
+    } catch (error) {
+      dispatch({
+        type: "deleting_failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+  useEffect(() => {
+    loadGifs();
+  }, [loadGifs]);
+
+  return { ...state, gifs: sortedGifs, togleSortOrder, saveGif, handleDelete };
 };

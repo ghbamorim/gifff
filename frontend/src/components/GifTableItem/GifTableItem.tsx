@@ -4,13 +4,18 @@ import type { Gif } from "../../types/types";
 
 type GifTableItemProps = {
   gif: Gif;
+  onDelete: (gif_id: number) => void;
 };
 
-export const GifTableItem = ({ gif }: GifTableItemProps) => {
+export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
   const mediaRef = useRef<HTMLDivElement>(null);
 
   const fullScreen = async () => {
     await mediaRef.current?.requestFullscreen();
+  };
+
+  const handleDelete = () => {
+    onDelete(gif.id);
   };
 
   const renderVideo = (gif: Gif) => {
@@ -45,6 +50,7 @@ export const GifTableItem = ({ gif }: GifTableItemProps) => {
           : renderGif(gif)}
       </div>
       <button onClick={fullScreen}>View</button>
+      <button onClick={handleDelete}>Delete</button>
     </div>
   );
 };
