@@ -4,6 +4,7 @@ export const initialState: GifTableState = {
   gifs: [],
   status: "idle",
   error: null,
+  sortOrder: "desc",
 };
 
 export const gifTableReducer = (
@@ -52,6 +53,12 @@ export const gifTableReducer = (
         ...state,
         status: "error",
         error: action.error,
+      };
+
+    case "sort_order_change":
+      return {
+        ...state,
+        sortOrder: action.sortOrder,
       };
   }
 };

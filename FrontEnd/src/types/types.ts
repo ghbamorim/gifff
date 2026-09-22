@@ -1,3 +1,5 @@
+export type SortOrder = "asc" | "desc";
+
 export type Gif = {
   id: number;
   filename: string;

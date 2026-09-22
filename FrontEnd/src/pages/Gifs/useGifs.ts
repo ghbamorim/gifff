@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import {
   gifTableReducer,
   initialState,
 } from "../../components/GifTable/GifTable.reducer";
 import { settings } from "../../settings";
-import type { Gif } from "../../types/gif.types";
+import type { Gif } from "../../types/types";
 
 export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
@@ -49,9 +49,23 @@ export const useGifs = () => {
     }
   };
 
+  const sortedGifs = useMemo(() => {
+    return [...state.gifs].sort((a, b) => {
+      const aTime = new Date(a.created_at).getTime();
+      const bTime = new Date(b.created_at).getTime();
+
+      return state.sortOrder === "asc" ? aTime - bTime : bTime - aTime;
+    });
+  }, [state.gifs, state.sortOrder]);
+
   useEffect(() => {
     loadGifs();
   }, [loadGifs]);
 
-  return { ...state, saveGif };
+  const togleSortOrder = () => {
+    const newSortOrder = state.sortOrder === "asc" ? "desc" : "asc";
+    dispatch({ type: "sort_order_change", sortOrder: newSortOrder });
+  };
+
+  return { ...state, gifs: sortedGifs, togleSortOrder, saveGif };
 };
