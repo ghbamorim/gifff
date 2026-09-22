@@ -55,6 +55,28 @@ export const gifTableReducer = (
         error: action.error,
       };
 
+    case "deleting_started":
+      return {
+        ...state,
+        status: "deleting",
+        error: null,
+      };
+
+    case "deleting_succeeded":
+      return {
+        ...state,
+        status: "idle",
+        gifs: [...state.gifs].filter((gif) => gif.id !== action.gif_id),
+        error: null,
+      };
+
+    case "deleting_failed":
+      return {
+        ...state,
+        status: "error",
+        error: action.error,
+      };
+
     case "sort_order_change":
       return {
         ...state,

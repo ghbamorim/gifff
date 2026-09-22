@@ -6,11 +6,13 @@ type GifTableProps = {
   gifs: Gif[];
   sortOrder: SortOrder;
   onTogleSortOrder: () => void;
+  onDelete: (id: number) => void;
 };
 
 export const GifTable = ({
   gifs,
   onTogleSortOrder,
+  onDelete,
   sortOrder,
 }: GifTableProps) => {
   return (
@@ -21,7 +23,7 @@ export const GifTable = ({
         </button>
       </div>
       {gifs.map((gif) => (
-        <GifTableItem key={gif.id} gif={gif}></GifTableItem>
+        <GifTableItem key={gif.id} gif={gif} onDelete={onDelete}></GifTableItem>
       ))}
     </>
   );
