@@ -1,6 +1,6 @@
 import "./GifTable.scss";
-import { type Gif } from "../pages/Gifs/GifPage";
-import { GifTableItem } from "./GifTableItem/GifTableItem";
+import { GifTableItem } from "../GifTableItem/GifTableItem";
+import type { Gif } from "../../types/gif.types";
 
 type GifTableProps = {
   gifs: Gif[];

@@ -1,16 +1,9 @@
 import "./GifPage.scss";
 import { useCallback, useEffect, useState } from "react";
-import { GifTable } from "../../components/GifTable";
+import { GifTable } from "../../components/GifTable/GifTable";
 import { AddGif } from "../../components/AddGif";
 import { settings } from "../../settings";
-
-export type Gif = {
-  id: number;
-  filename: string;
-  content_type: string;
-  created_at: string;
-  data: string;
-};
+import type { Gif } from "../../types/gif.types";
 
 export const GifPage = () => {
   const [gifs, setGifs] = useState<Gif[]>([]);

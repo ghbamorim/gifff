@@ -1,6 +1,6 @@
-import { useRef } from "react";
-import { type Gif } from "../../pages/Gifs/GifPage";
 import "./GifTableitem.scss";
+import { useRef } from "react";
+import type { Gif } from "../../types/gif.types";
 
 type GifTableItemProps = {
   gif: Gif;
