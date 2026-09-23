@@ -3,7 +3,7 @@ import {
   gifTableReducer,
   initialState,
 } from "../../components/GifTable/GifTable.reducer";
-import { GifService } from "../../services/GifService";
+import { GifService } from "../../services/gifservice";
 import type { Gif } from "../../types/types";
 
 const gifService = new GifService();

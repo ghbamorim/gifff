@@ -1,6 +1,7 @@
 import "./GifTableitem.scss";
 import { useRef } from "react";
 import type { Gif } from "../../types/types";
+import { settings } from "../../settings";
 
 type GifTableItemProps = {
   gif: Gif;
@@ -21,7 +22,7 @@ export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
   const renderVideo = (gif: Gif) => {
     return (
       <video
-        src={`data:${gif.content_type};base64,${gif.data}`}
+        src={`${settings.apiUrl}/gifs/${gif.id}`}
         autoPlay
         loop
         muted
@@ -35,7 +36,7 @@ export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
     return (
       <img
         key={gif.id}
-        src={`data:${gif.content_type};base64,${gif.data}`}
+        src={`${settings.apiUrl}/gifs/${gif.id}`}
         alt={gif.filename}
         className="gif"
       ></img>
