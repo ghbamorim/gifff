@@ -1,6 +1,6 @@
-from fastapi import HTTPException, status
 from app.models.gif import Gif
 from app.schemas.gif import GifCreate
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -1,13 +1,15 @@
+from typing import Annotated
+
 from app.core.database import DbSession
 from app.schemas.gif import GifCreate, GifResponse
 from app.services.gif import GifService
-from fastapi import APIRouter, File, UploadFile, status, Response
+from fastapi import APIRouter, File, Response, UploadFile, status
 
 router = APIRouter(prefix="/gifs", tags=["Gif"])
 
 
 @router.post("", response_model=GifResponse)
-async def create_gif(db: DbSession, file: UploadFile = File(...)) -> GifResponse:
+async def create_gif(db: DbSession, file: Annotated[UploadFile, File()]) -> GifResponse:
     content = await file.read()
 
     data = GifCreate(
@@ -23,10 +25,10 @@ async def get_gifs(db: DbSession) -> list[GifResponse]:
     return [GifResponse.model_validate(gif) for gif in result]
 
 
-@router.get("/{gif_id}", response_model=GifResponse)
-async def get_gif(gif_id: int, db: DbSession) -> GifResponse:
+@router.get("/{gif_id}")
+async def get_gif(gif_id: int, db: DbSession) -> Response:
     gif = await GifService.get_gif(gif_id, db)
-    return GifResponse.model_validate(gif)
+    return Response(content=gif.data, media_type=gif.content_type)
 
 
 @router.delete("/{gif_id}", status_code=status.HTTP_204_NO_CONTENT)

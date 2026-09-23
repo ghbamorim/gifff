@@ -4,11 +4,11 @@ set -e
 
 # Load development environment variables into this shell
 set -a
-source .env.dev
+source backend/.env
 set +a
 
 docker compose \
-  --env-file .env.dev \
+  --env-file backend/.env \
   -p gifff-dev \
   -f compose.yaml \
   -f compose.dev.yaml \
