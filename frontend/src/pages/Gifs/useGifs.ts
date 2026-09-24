@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from "react";
+import { useReducer, useRef } from "react";
 import {
   gifTableReducer,
   initialState,
@@ -11,53 +11,42 @@ const gifService = new GifService();
 
 export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
+  const isLoading = useRef(false);
 
-  const loadGifs = useCallback(
-    async (
-      page: number = 1,
-      abortSignal: AbortSignal | undefined = undefined,
-    ) => {
-      dispatch({ type: page === 1 ? "load_started" : "load_more_started" });
+  const loadGifs = async (page: number) => {
+    dispatch({ type: "load_started" });
 
-      try {
-        const gifPage: GifPage = await gifService.getAll(
-          page,
-          PAGE_SIZE,
-          state.sortOrder,
-          abortSignal,
-        );
-        if (page === 1) {
-          dispatch({
-            type: "load_succeeded",
-            gifs: gifPage.items,
-            pages: gifPage.pages,
-          });
-        } else {
-          dispatch({
-            type: "load_more_succeeded",
-            gifs: gifPage.items,
-            page: gifPage.page,
-            pages: gifPage.pages,
-          });
-        }
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-        dispatch({
-          type: "load_failed",
-          error: error instanceof Error ? error.message : "Unknown Error",
-        });
-      }
-    },
-    [state.sortOrder],
-  );
+    try {
+      const gifPage: GifPage = await gifService.getAll(
+        page,
+        PAGE_SIZE,
+        state.sortOrder,
+      );
 
-  const handleLoadMore = () => {
-    if (state.isLoadingMore || state.page >= state.pages) {
+      dispatch({
+        type: "load_succeeded",
+        gifs: gifPage.items,
+        page: gifPage.page,
+        pages: gifPage.pages,
+      });
+    } catch (error) {
+      dispatch({
+        type: "load_failed",
+        error: error instanceof Error ? error.message : "Unknown Error",
+      });
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (isLoading.current || (state.pages > 0 && state.page >= state.pages)) {
       return;
     }
-    loadGifs(state.page + 1);
+    isLoading.current = true;
+    try {
+      await loadGifs(state.page + 1);
+    } finally {
+      isLoading.current = false;
+    }
   };
 
   const saveGif = async (formData: FormData) => {
@@ -91,15 +80,6 @@ export const useGifs = () => {
       });
     }
   };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadGifs(1, controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [loadGifs]);
 
   return { ...state, toggleSortOrder, saveGif, handleDelete, handleLoadMore };
 };
