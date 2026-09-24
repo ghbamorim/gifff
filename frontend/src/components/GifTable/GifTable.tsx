@@ -1,6 +1,7 @@
 import "./GifTable.scss";
 import { GifTableItem } from "../GifTableItem/GifTableItem";
 import type { Gif, SortOrder } from "../../types/types";
+import { useEffect, useRef } from "react";
 
 type GifTableProps = {
   gifs: Gif[];
@@ -17,6 +18,29 @@ export const GifTable = ({
   sortOrder,
   onLoadMore,
 }: GifTableProps) => {
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = loadMoreRef.current;
+    if (!element) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { rootMargin: "100px" },
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [onLoadMore]);
+
   return (
     <>
       <div>
@@ -27,7 +51,7 @@ export const GifTable = ({
       {gifs.map((gif) => (
         <GifTableItem key={gif.id} gif={gif} onDelete={onDelete}></GifTableItem>
       ))}
-      <button onClick={onLoadMore}>Load more</button>
+      <div ref={loadMoreRef} />
     </>
   );
 };
