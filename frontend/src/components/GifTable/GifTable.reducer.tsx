@@ -3,6 +3,7 @@ import type { GifTableAction, GifTableState } from "./GifTable.types";
 export const initialState: GifTableState = {
   gifs: [],
   status: "idle",
+  isLoadingMore: false,
   error: null,
   sortOrder: "desc",
   page: 1,
@@ -25,6 +26,7 @@ export const gifTableReducer = (
       return {
         ...state,
         error: null,
+        isLoadingMore: true,
       };
 
     case "load_succeeded":
@@ -42,6 +44,7 @@ export const gifTableReducer = (
         gifs: [...state.gifs, ...action.gifs],
         page: action.page,
         pages: action.pages,
+        isLoadingMore: false,
       };
 
     case "load_failed":
@@ -49,6 +52,7 @@ export const gifTableReducer = (
         ...state,
         status: "error",
         error: action.error,
+        isLoadingMore: false,
       };
 
     case "saving_started":

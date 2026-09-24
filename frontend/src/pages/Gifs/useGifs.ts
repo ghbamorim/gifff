@@ -13,7 +13,10 @@ export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
 
   const loadGifs = useCallback(
-    async (page: number = 1) => {
+    async (
+      page: number = 1,
+      abortSignal: AbortSignal | undefined = undefined,
+    ) => {
       dispatch({ type: page === 1 ? "load_started" : "load_more_started" });
 
       try {
@@ -21,6 +24,7 @@ export const useGifs = () => {
           page,
           PAGE_SIZE,
           state.sortOrder,
+          abortSignal,
         );
         if (page === 1) {
           dispatch({
@@ -37,6 +41,9 @@ export const useGifs = () => {
           });
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
         dispatch({
           type: "load_failed",
           error: error instanceof Error ? error.message : "Unknown Error",
@@ -47,7 +54,7 @@ export const useGifs = () => {
   );
 
   const handleLoadMore = () => {
-    if (state.page >= state.pages) {
+    if (state.isLoadingMore || state.page >= state.pages) {
       return;
     }
     loadGifs(state.page + 1);
@@ -86,7 +93,12 @@ export const useGifs = () => {
   };
 
   useEffect(() => {
-    loadGifs();
+    const controller = new AbortController();
+    loadGifs(1, controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, [loadGifs]);
 
   return { ...state, toggleSortOrder, saveGif, handleDelete, handleLoadMore };

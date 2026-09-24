@@ -3,6 +3,7 @@ import type { Gif, SortOrder } from "../../types/types";
 export type GifTableState = {
   gifs: Gif[];
   status: "idle" | "loading" | "saving" | "deleting" | "error";
+  isLoadingMore: boolean;
   error: string | null;
   sortOrder: SortOrder;
   page: number;
