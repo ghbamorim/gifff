@@ -3,3 +3,9 @@
   height: 100px;
   object-fit: cover;
 }
+
+.gif-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}

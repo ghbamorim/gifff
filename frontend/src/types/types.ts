@@ -14,3 +14,5 @@ export type GifPage = {
   pages: number;
   page_size: number;
 };
+
+export type PageStatus = "idle" | "loading" | "saving" | "deleting" | "error";
