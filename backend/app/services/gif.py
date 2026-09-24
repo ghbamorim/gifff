@@ -1,7 +1,9 @@
+from typing import Literal
+
 from app.models.gif import Gif
 from app.schemas.gif import GifCreate
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -14,8 +16,24 @@ class GifService:
         return gif
 
     @staticmethod
-    async def get_gifs(db: AsyncSession) -> list[Gif]:
-        return (await db.scalars(select(Gif))).all()
+    async def get_gifs(
+        page: int, page_size: int, sort_order: Literal["asc", "desc"], db: AsyncSession
+    ) -> tuple[list[Gif], int]:
+
+        total = await db.scalar(select(func.count()).select_from(Gif))
+
+        order_func = asc if sort_order == "asc" else desc
+
+        off_set = (page - 1) * page_size
+
+        result = await db.scalars(
+            select(Gif)
+            .order_by(order_func(Gif.created_at), order_func(Gif.id))
+            .offset(off_set)
+            .limit(page_size)
+        )
+
+        return result.all(), total
 
     @staticmethod
     async def get_gif(gif_id: int, db: AsyncSession) -> Gif:

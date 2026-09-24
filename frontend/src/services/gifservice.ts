@@ -1,5 +1,6 @@
+import { PAGE_SIZE } from "../pages/Gifs/GifPage";
 import { settings } from "../settings";
-import type { Gif } from "../types/types";
+import type { Gif, GifPage, SortOrder } from "../types/types";
 
 export class GifService {
   private readonly baseUrl: string;
@@ -7,8 +8,19 @@ export class GifService {
     this.baseUrl = baseUrl;
   }
 
-  async getAll(): Promise<Gif[]> {
-    const response = await fetch(`${this.baseUrl}/gifs`);
+  async getAll(
+    page: number,
+    page_size = PAGE_SIZE,
+    sort_order: SortOrder = "asc",
+    abortSignal: AbortSignal | undefined = undefined,
+  ): Promise<GifPage> {
+    const response = await fetch(
+      `${this.baseUrl}/gifs?` +
+        `page=${page}` +
+        `&page_size=${page_size}` +
+        `&sort_order=${sort_order}`,
+      { signal: abortSignal },
+    );
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
     }

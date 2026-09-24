@@ -16,6 +16,10 @@ export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
   };
 
   const handleDelete = () => {
+    const confirmed = window.confirm("Confirm delete?");
+    if (!confirmed) {
+      return;
+    }
     onDelete(gif.id);
   };
 
@@ -50,8 +54,10 @@ export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
           ? renderVideo(gif)
           : renderGif(gif)}
       </div>
-      <button onClick={fullScreen}>View</button>
-      <button onClick={handleDelete}>Delete</button>
+      <div className="button-container">
+        <button onClick={fullScreen}>⛶</button>
+        <button onClick={handleDelete}>-</button>
+      </div>
     </div>
   );
 };

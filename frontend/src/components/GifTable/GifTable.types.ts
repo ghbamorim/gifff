@@ -1,15 +1,18 @@
-import type { Gif, SortOrder } from "../../types/types";
+import type { Gif, PageStatus, SortOrder } from "../../types/types";
 
 export type GifTableState = {
   gifs: Gif[];
-  status: "idle" | "loading" | "saving" | "deleting" | "error";
+  status: PageStatus;
+  isLoadingMore: boolean;
   error: string | null;
   sortOrder: SortOrder;
+  page: number;
+  pages: number;
 };
 
 export type GifTableAction =
   | { type: "load_started" }
-  | { type: "load_succeeded"; gifs: Gif[] }
+  | { type: "load_succeeded"; gifs: Gif[]; page: number; pages: number }
   | { type: "load_failed"; error: string }
   | { type: "saving_started" }
   | { type: "saving_succeeded"; gif: Gif }

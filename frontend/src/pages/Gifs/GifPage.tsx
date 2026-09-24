@@ -1,7 +1,9 @@
-import { AddGif } from "../../components/AddGif";
+import { Header } from "../../components/Header";
 import { GifTable } from "../../components/GifTable/GifTable";
 import "./GifPage.scss";
 import { useGifs } from "./useGifs";
+
+export const PAGE_SIZE = 10;
 
 export const GifPage = () => {
   const {
@@ -10,37 +12,27 @@ export const GifPage = () => {
     error,
     saveGif,
     sortOrder,
-    togleSortOrder,
+    toggleSortOrder,
     handleDelete,
+    handleLoadMore,
   } = useGifs();
-
-  switch (status) {
-    case "loading":
-      return <div>Loading</div>;
-
-    case "saving":
-      return <div>Saving</div>;
-
-    case "deleting":
-      return <div>Deleting</div>;
-
-    case "error":
-      return <div>{error}</div>;
-    default:
-      break;
-  }
 
   return (
     <div className="gif-page">
       <div>
-        <AddGif onSave={saveGif}></AddGif>
+        <Header
+          onSave={saveGif}
+          sortOrder={sortOrder}
+          onTogleSortOrder={toggleSortOrder}
+        ></Header>
       </div>
       <div>
         <GifTable
           gifs={gifs}
-          onTogleSortOrder={togleSortOrder}
-          sortOrder={sortOrder}
           onDelete={handleDelete}
+          onLoadMore={handleLoadMore}
+          status={status}
+          error={error}
         ></GifTable>
       </div>
     </div>
