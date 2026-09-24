@@ -5,6 +5,8 @@ export const initialState: GifTableState = {
   status: "idle",
   error: null,
   sortOrder: "desc",
+  page: 1,
+  pages: 1,
 };
 
 export const gifTableReducer = (
@@ -19,11 +21,27 @@ export const gifTableReducer = (
         error: null,
       };
 
+    case "load_more_started":
+      return {
+        ...state,
+        error: null,
+      };
+
     case "load_succeeded":
       return {
         ...state,
         gifs: action.gifs,
         status: "idle",
+        page: 1,
+        pages: action.pages,
+      };
+
+    case "load_more_succeeded":
+      return {
+        ...state,
+        gifs: [...state.gifs, ...action.gifs],
+        page: action.page,
+        pages: action.pages,
       };
 
     case "load_failed":
@@ -81,6 +99,10 @@ export const gifTableReducer = (
       return {
         ...state,
         sortOrder: action.sortOrder,
+        page: 1,
       };
+
+    default:
+      return state;
   }
 };

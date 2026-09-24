@@ -16,6 +16,10 @@ export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
   };
 
   const handleDelete = () => {
+    const confirmed = window.confirm("Confirm delete?");
+    if (!confirmed) {
+      return;
+    }
     onDelete(gif.id);
   };
 

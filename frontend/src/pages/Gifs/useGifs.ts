@@ -1,28 +1,57 @@
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import {
   gifTableReducer,
   initialState,
 } from "../../components/GifTable/GifTable.reducer";
 import { GifService } from "../../services/gifservice";
-import type { Gif } from "../../types/types";
+import type { Gif, GifPage } from "../../types/types";
+import { PAGE_SIZE } from "./GifPage";
 
 const gifService = new GifService();
 
 export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
 
-  const loadGifs = useCallback(async () => {
-    dispatch({ type: "load_started" });
-    try {
-      const data: Gif[] = await gifService.getAll();
-      dispatch({ type: "load_succeeded", gifs: data });
-    } catch (error) {
-      dispatch({
-        type: "load_failed",
-        error: error instanceof Error ? error.message : "Unknown Error",
-      });
+  const loadGifs = useCallback(
+    async (page: number = 1) => {
+      dispatch({ type: page === 1 ? "load_started" : "load_more_started" });
+
+      try {
+        const gifPage: GifPage = await gifService.getAll(
+          page,
+          PAGE_SIZE,
+          state.sortOrder,
+        );
+        if (page === 1) {
+          dispatch({
+            type: "load_succeeded",
+            gifs: gifPage.items,
+            pages: gifPage.pages,
+          });
+        } else {
+          dispatch({
+            type: "load_more_succeeded",
+            gifs: gifPage.items,
+            page: gifPage.page,
+            pages: gifPage.pages,
+          });
+        }
+      } catch (error) {
+        dispatch({
+          type: "load_failed",
+          error: error instanceof Error ? error.message : "Unknown Error",
+        });
+      }
+    },
+    [state.sortOrder],
+  );
+
+  const handleLoadMore = () => {
+    if (state.page >= state.pages) {
+      return;
     }
-  }, []);
+    loadGifs(state.page + 1);
+  };
 
   const saveGif = async (formData: FormData) => {
     dispatch({ type: "saving_started" });
@@ -37,16 +66,7 @@ export const useGifs = () => {
     }
   };
 
-  const sortedGifs = useMemo(() => {
-    return [...state.gifs].sort((a, b) => {
-      const aTime = new Date(a.created_at).getTime();
-      const bTime = new Date(b.created_at).getTime();
-
-      return state.sortOrder === "asc" ? aTime - bTime : bTime - aTime;
-    });
-  }, [state.gifs, state.sortOrder]);
-
-  const togleSortOrder = () => {
+  const toggleSortOrder = () => {
     const newSortOrder = state.sortOrder === "asc" ? "desc" : "asc";
     dispatch({ type: "sort_order_change", sortOrder: newSortOrder });
   };
@@ -69,5 +89,5 @@ export const useGifs = () => {
     loadGifs();
   }, [loadGifs]);
 
-  return { ...state, gifs: sortedGifs, togleSortOrder, saveGif, handleDelete };
+  return { ...state, toggleSortOrder, saveGif, handleDelete, handleLoadMore };
 };

@@ -6,3 +6,11 @@ export type Gif = {
   content_type: string;
   created_at: string;
 };
+
+export type GifPage = {
+  items: Gif[];
+  total: number;
+  page: number;
+  pages: number;
+  page_size: number;
+};

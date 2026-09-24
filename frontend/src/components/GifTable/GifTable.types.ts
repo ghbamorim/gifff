@@ -5,11 +5,15 @@ export type GifTableState = {
   status: "idle" | "loading" | "saving" | "deleting" | "error";
   error: string | null;
   sortOrder: SortOrder;
+  page: number;
+  pages: number;
 };
 
 export type GifTableAction =
   | { type: "load_started" }
-  | { type: "load_succeeded"; gifs: Gif[] }
+  | { type: "load_more_started" }
+  | { type: "load_succeeded"; gifs: Gif[]; pages: number }
+  | { type: "load_more_succeeded"; gifs: Gif[]; page: number; pages: number }
   | { type: "load_failed"; error: string }
   | { type: "saving_started" }
   | { type: "saving_succeeded"; gif: Gif }

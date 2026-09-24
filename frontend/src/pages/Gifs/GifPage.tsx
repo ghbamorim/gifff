@@ -3,6 +3,8 @@ import { GifTable } from "../../components/GifTable/GifTable";
 import "./GifPage.scss";
 import { useGifs } from "./useGifs";
 
+export const PAGE_SIZE = 5;
+
 export const GifPage = () => {
   const {
     gifs,
@@ -10,8 +12,9 @@ export const GifPage = () => {
     error,
     saveGif,
     sortOrder,
-    togleSortOrder,
+    toggleSortOrder,
     handleDelete,
+    handleLoadMore,
   } = useGifs();
 
   switch (status) {
@@ -38,9 +41,10 @@ export const GifPage = () => {
       <div>
         <GifTable
           gifs={gifs}
-          onTogleSortOrder={togleSortOrder}
+          onTogleSortOrder={toggleSortOrder}
           sortOrder={sortOrder}
           onDelete={handleDelete}
+          onLoadMore={handleLoadMore}
         ></GifTable>
       </div>
     </div>

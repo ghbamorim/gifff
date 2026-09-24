@@ -7,6 +7,7 @@ type GifTableProps = {
   sortOrder: SortOrder;
   onTogleSortOrder: () => void;
   onDelete: (id: number) => void;
+  onLoadMore: () => void;
 };
 
 export const GifTable = ({
@@ -14,6 +15,7 @@ export const GifTable = ({
   onTogleSortOrder,
   onDelete,
   sortOrder,
+  onLoadMore,
 }: GifTableProps) => {
   return (
     <>
@@ -25,6 +27,7 @@ export const GifTable = ({
       {gifs.map((gif) => (
         <GifTableItem key={gif.id} gif={gif} onDelete={onDelete}></GifTableItem>
       ))}
+      <button onClick={onLoadMore}>Load more</button>
     </>
   );
 };
