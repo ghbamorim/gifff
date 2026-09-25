@@ -1,5 +1,5 @@
 import "./GifTableitem.scss";
-import { memo, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { Gif } from "../../types/types";
 import { settings } from "../../settings";
 
@@ -9,10 +9,14 @@ type GifTableItemProps = {
 };
 
 export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
-  const mediaRef = useRef<HTMLDivElement>(null);
+  const gifRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const isVideo = gif.content_type.startsWith("video/");
 
   const fullScreen = async () => {
-    await mediaRef.current?.requestFullscreen();
+    const ref = isVideo ? videoRef : gifRef;
+    await ref.current?.requestFullscreen();
   };
 
   const handleDelete = () => {
@@ -27,12 +31,12 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
     return (
       <video
         src={`${settings.apiUrl}/gifs/${gif.id}`}
-        autoPlay
+        ref={videoRef}
         loop
         muted
         playsInline
         className="gif"
-      ></video>
+      />
     );
   };
 
@@ -42,19 +46,31 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
         key={gif.id}
         src={`${settings.apiUrl}/gifs/${gif.id}`}
         alt={gif.filename}
+        ref={gifRef}
         className="gif"
         loading="lazy"
-      ></img>
+      />
     );
   };
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div>
-      <div ref={mediaRef}>
-        {gif.content_type.startsWith("video/")
-          ? renderVideo(gif)
-          : renderGif(gif)}
-      </div>
+    <div className="media-container">
+      <span className="media-type">{isVideo ? "▶ MP4" : "GIF"}</span>
+      {isVideo ? renderVideo(gif) : renderGif(gif)}
       <div className="button-container">
         <button onClick={fullScreen}>⛶</button>
         <button onClick={handleDelete}>-</button>

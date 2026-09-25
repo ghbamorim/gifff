@@ -1,18 +1,31 @@
-.gif {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-}
+.media-container {
+  position: relative;
+  width: fit-content;
 
-:fullscreen {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: black;
-}
+  .media-type {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 1;
 
-:fullscreen .gif {
-  width: 50vw;
-  height: 50vw;
-  object-fit: contain;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+  }
+
+  .gif {
+    display: block;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+  }
+
+  :fullscreen {
+    background: black;
+    object-fit: contain;
+  }
 }
