@@ -5,6 +5,7 @@ from app.schemas.gif import GifCreate
 from fastapi import HTTPException, status
 from sqlalchemy import asc, desc, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 
 class GifService:
@@ -28,6 +29,7 @@ class GifService:
 
         result = await db.scalars(
             select(Gif)
+            .options(defer(Gif.data))
             .order_by(order_func(Gif.created_at), order_func(Gif.id))
             .offset(off_set)
             .limit(page_size)
