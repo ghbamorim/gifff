@@ -5,7 +5,7 @@ from app.core.database import DbSession
 from app.schemas.gif import GifCreate, GifResponse
 from app.schemas.pagination import Page
 from app.services.gif import GifService
-from fastapi import APIRouter, File, Query, Response, UploadFile, status
+from fastapi import APIRouter, File, Query, Request, Response, UploadFile, status
 
 router = APIRouter(prefix="/gifs", tags=["Gif"])
 
@@ -42,9 +42,24 @@ async def get_gifs(
 
 
 @router.get("/{gif_id}")
-async def get_gif(gif_id: int, db: DbSession) -> Response:
+async def get_gif(gif_id: int, request: Request, db: DbSession) -> Response:
+
+    etag = f'"{gif_id}"'
+
+    headers = {"Etag": etag, "Cache-control": "no-cache"}
+
+    if (request.headers.get("if-none-match") == etag) and (
+        await GifService.gif_exists(gif_id, db)
+    ):
+
+        return Response(status_code=304, headers=headers)
+
     gif = await GifService.get_gif(gif_id, db)
-    return Response(content=gif.data, media_type=gif.content_type)
+    return Response(
+        content=gif.data,
+        media_type=gif.content_type,
+        headers=headers,
+    )
 
 
 @router.delete("/{gif_id}", status_code=status.HTTP_204_NO_CONTENT)

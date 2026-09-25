@@ -3,7 +3,7 @@ from typing import Literal
 from app.models.gif import Gif
 from app.schemas.gif import GifCreate
 from fastapi import HTTPException, status
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -44,6 +44,19 @@ class GifService:
             )
 
         return gif
+
+    @staticmethod
+    async def gif_exists(gif_id: int, db: AsyncSession) -> bool:
+        stmt = select(exists().where(Gif.id == gif_id))
+
+        exist = await db.scalar(stmt)
+
+        if not exist:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Gif not found"
+            )
+
+        return True
 
     @staticmethod
     async def delete_gif(gif_id: int, db: AsyncSession) -> None:
