@@ -1,5 +1,5 @@
 import "./GifTableitem.scss";
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import type { Gif } from "../../types/types";
 import { settings } from "../../settings";
 
@@ -8,7 +8,7 @@ type GifTableItemProps = {
   onDelete: (gif_id: number) => void;
 };
 
-export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
+export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
   const mediaRef = useRef<HTMLDivElement>(null);
 
   const fullScreen = async () => {
@@ -43,6 +43,7 @@ export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
         src={`${settings.apiUrl}/gifs/${gif.id}`}
         alt={gif.filename}
         className="gif"
+        loading="lazy"
       ></img>
     );
   };
@@ -60,4 +61,4 @@ export const GifTableItem = ({ gif, onDelete }: GifTableItemProps) => {
       </div>
     </div>
   );
-};
+});

@@ -1,4 +1,4 @@
-import { useReducer, useRef } from "react";
+import { useCallback, useReducer, useRef } from "react";
 import {
   gifTableReducer,
   initialState,
@@ -13,31 +13,34 @@ export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
   const isLoading = useRef(false);
 
-  const loadGifs = async (page: number) => {
-    dispatch({ type: "load_started" });
+  const loadGifs = useCallback(
+    async (page: number) => {
+      dispatch({ type: "load_started" });
 
-    try {
-      const gifPage: GifPage = await gifService.getAll(
-        page,
-        PAGE_SIZE,
-        state.sortOrder,
-      );
+      try {
+        const gifPage: GifPage = await gifService.getAll(
+          page,
+          PAGE_SIZE,
+          state.sortOrder,
+        );
 
-      dispatch({
-        type: "load_succeeded",
-        gifs: gifPage.items,
-        page: gifPage.page,
-        pages: gifPage.pages,
-      });
-    } catch (error) {
-      dispatch({
-        type: "load_failed",
-        error: error instanceof Error ? error.message : "Unknown Error",
-      });
-    }
-  };
+        dispatch({
+          type: "load_succeeded",
+          gifs: gifPage.items,
+          page: gifPage.page,
+          pages: gifPage.pages,
+        });
+      } catch (error) {
+        dispatch({
+          type: "load_failed",
+          error: error instanceof Error ? error.message : "Unknown Error",
+        });
+      }
+    },
+    [state.sortOrder],
+  );
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (isLoading.current || (state.pages > 0 && state.page >= state.pages)) {
       return;
     }
@@ -47,9 +50,9 @@ export const useGifs = () => {
     } finally {
       isLoading.current = false;
     }
-  };
+  }, [loadGifs, state.page, state.pages]);
 
-  const saveGif = async (formData: FormData) => {
+  const saveGif = useCallback(async (formData: FormData) => {
     dispatch({ type: "saving_started" });
     try {
       const gif: Gif = await gifService.save(formData);
@@ -60,14 +63,14 @@ export const useGifs = () => {
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  };
+  }, []);
 
-  const toggleSortOrder = () => {
+  const toggleSortOrder = useCallback(() => {
     const newSortOrder = state.sortOrder === "asc" ? "desc" : "asc";
     dispatch({ type: "sort_order_change", sortOrder: newSortOrder });
-  };
+  }, [state.sortOrder]);
 
-  const handleDelete = async (gif_id: number) => {
+  const handleDelete = useCallback(async (gif_id: number) => {
     dispatch({ type: "deleting_started" });
     try {
       await gifService.delete(gif_id);
@@ -79,7 +82,7 @@ export const useGifs = () => {
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  };
+  }, []);
 
   return { ...state, toggleSortOrder, saveGif, handleDelete, handleLoadMore };
 };
