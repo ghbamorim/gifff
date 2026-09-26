@@ -15,7 +15,7 @@ export type GifTableAction =
   | { type: "load_succeeded"; gifs: Gif[]; page: number; pages: number }
   | { type: "load_failed"; error: string }
   | { type: "saving_started" }
-  | { type: "saving_succeeded"; gif: Gif }
+  | { type: "saving_succeeded"; gifs: Gif[] }
   | { type: "saving_failed"; error: string }
   | { type: "deleting_started" }
   | { type: "deleting_succeeded"; gif_id: number }

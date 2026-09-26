@@ -52,7 +52,7 @@ export const gifTableReducer = (
       return {
         ...state,
         status: "idle",
-        gifs: [action.gif, ...state.gifs],
+        gifs: [...action.gifs, ...state.gifs],
         error: null,
       };
 

@@ -28,13 +28,14 @@ export class GifService {
     return response.json();
   }
 
-  async save(formData: FormData): Promise<Gif> {
+  async save(formData: FormData): Promise<Gif[]> {
     const response = await fetch(`${this.baseUrl}/gifs`, {
       method: "POST",
       body: formData,
     });
     if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
+      const error = await response.json();
+      throw new Error(`HTTP error: ${response.status} ${error.detail}`);
     }
 
     return response.json();

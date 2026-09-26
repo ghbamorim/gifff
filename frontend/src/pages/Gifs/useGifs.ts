@@ -55,8 +55,8 @@ export const useGifs = () => {
   const saveGif = useCallback(async (formData: FormData) => {
     dispatch({ type: "saving_started" });
     try {
-      const gif: Gif = await gifService.save(formData);
-      dispatch({ type: "saving_succeeded", gif: gif });
+      const gifs: Gif[] = await gifService.save(formData);
+      dispatch({ type: "saving_succeeded", gifs });
     } catch (error) {
       dispatch({
         type: "saving_failed",
