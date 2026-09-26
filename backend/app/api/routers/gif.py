@@ -1,24 +1,53 @@
+import asyncio
 import math
 from typing import Annotated, Literal
 
 from app.core.database import DbSession
+from app.models.gif import Gif
 from app.schemas.gif import GifCreate, GifResponse
 from app.schemas.pagination import Page
 from app.services.gif import GifService
-from fastapi import APIRouter, File, Query, Request, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 
 router = APIRouter(prefix="/gifs", tags=["Gif"])
 
+MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20 MB
+
 
 @router.post("")
-async def create_gif(db: DbSession, file: Annotated[UploadFile, File()]) -> GifResponse:
-    content = await file.read()
+async def create_gif(
+    db: DbSession, files: Annotated[list[UploadFile], File()]
+) -> list[GifResponse]:
 
-    data = GifCreate(
-        filename=file.filename, content_type=file.content_type, data=content
-    )
-    result = await GifService.create_gif(data, db)
-    return GifResponse.model_validate(result)
+    total_size = sum(file.size or 0 for file in files)
+
+    if total_size > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"The total size of the files cannot exceed {MAX_UPLOAD_SIZE} byte",
+        )
+
+    async def read_file(file: UploadFile) -> GifCreate:
+        content = await file.read()
+
+        return GifCreate(
+            filename=file.filename, content_type=file.content_type, data=content
+        )
+
+    file_contents = await asyncio.gather(*(read_file(file) for file in files))
+
+    gifs: list[Gif] = [await GifService.create_gif(data, db) for data in file_contents]
+
+    return [GifResponse.model_validate(result) for result in gifs]
 
 
 @router.get("")
