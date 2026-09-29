@@ -1,9 +1,10 @@
-from fastapi import status
 from pathlib import Path
-from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
+
+from fastapi import FastAPI, status
+from fastapi.testclient import TestClient
+
 from app.main import setup_frontend
-from fastapi import FastAPI
 
 
 def test_main(test_client: TestClient) -> None:
