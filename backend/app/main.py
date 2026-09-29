@@ -26,7 +26,11 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def setup_frontend(app: FastAPI, frontend_dir: Path) -> None:
+    if frontend_dir.exists():
+        app.frontend("/", directory=str(frontend_dir))
+
+
 frontend_dir = Path(__file__).resolve().parent / "frontend"
 
-if frontend_dir.exists():
-    app.frontend("/", directory=str(frontend_dir))
+setup_frontend(app, frontend_dir)
