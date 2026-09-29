@@ -6,6 +6,26 @@ on:
       - main
 
 jobs:
+  lint:
+    name: Ruff
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Check Ruff
+        working-directory: backend
+        run: ruff check .
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
