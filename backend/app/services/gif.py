@@ -1,11 +1,12 @@
 from typing import Literal
 
-from app.models.gif import Gif
-from app.schemas.gif import GifCreate
 from fastapi import HTTPException, status
 from sqlalchemy import asc, desc, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
+
+from app.models.gif import Gif
+from app.schemas.gif import GifCreate
 
 
 class GifService:
@@ -35,7 +36,7 @@ class GifService:
             .limit(page_size)
         )
 
-        return result.all(), total
+        return list(result.all()), total or 0
 
     @staticmethod
     async def get_gif(gif_id: int, db: AsyncSession) -> Gif:
