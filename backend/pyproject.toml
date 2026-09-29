@@ -4,3 +4,5 @@ testpaths = ['tests']
 [tool.coverage.run]
 branch=true
 omit=['app/core/database.py']
+[tool.ruff.lint]
+select = ["E", "F", "I"]
