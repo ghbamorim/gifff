@@ -2,11 +2,6 @@ import asyncio
 import math
 from typing import Annotated, Literal
 
-from app.core.database import DbSession
-from app.models.gif import Gif
-from app.schemas.gif import GifCreate, GifResponse
-from app.schemas.pagination import Page
-from app.services.gif import GifService
 from fastapi import (
     APIRouter,
     File,
@@ -17,6 +12,12 @@ from fastapi import (
     UploadFile,
     status,
 )
+
+from app.core.database import DbSession
+from app.models.gif import Gif
+from app.schemas.gif import GifCreate, GifResponse
+from app.schemas.pagination import Page
+from app.services.gif import GifService
 
 router = APIRouter(prefix="/gifs", tags=["Gif"])
 
@@ -33,11 +34,14 @@ async def create_gif(
     if total_size > MAX_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"The total size of the files cannot exceed {MAX_UPLOAD_SIZE} byte",
+            detail=f"The total size of the files cannot exceed {MAX_UPLOAD_SIZE} bytes",
         )
 
     async def read_file(file: UploadFile) -> GifCreate:
         content = await file.read()
+
+        assert file.filename is not None
+        assert file.content_type is not None
 
         return GifCreate(
             filename=file.filename, content_type=file.content_type, data=content

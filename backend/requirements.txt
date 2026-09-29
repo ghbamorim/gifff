@@ -1,7 +1,11 @@
 fastapi
-sqlalchemy
+sqlalchemy[asyncio]
 pydantic-settings
 alembic
 asyncpg
 uvicorn
 python-multipart
+pytest
+pytest-cov
+httpx2
+pytest-anyio
