@@ -10,6 +10,13 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
 
+    env:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
