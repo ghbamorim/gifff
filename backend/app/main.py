@@ -1,3 +1,4 @@
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,4 +25,7 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.frontend("/", directory="app/frontend")
+frontend_dir = Path(__file__).resolve().parent / "frontend"
+
+if frontend_dir.exists():
+    app.frontend("/", directory=str(frontend_dir))
