@@ -137,7 +137,7 @@ async def test_get_exists(gif1: Gif, mock_db_session: MagicMock) -> None:
 
     # assert
 
-    assert result == True
+    assert result
 
 
 @pytest.mark.anyio
