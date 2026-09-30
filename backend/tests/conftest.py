@@ -19,7 +19,7 @@ def mock_db_session() -> MagicMock:
 def test_client(mock_db_session: MagicMock) -> Generator[TestClient, None, None]:
 
     async def override_get_session():
-        yield mock_db_session()
+        yield mock_db_session
 
     app.dependency_overrides[get_session] = override_get_session
 
