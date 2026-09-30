@@ -1,5 +1,6 @@
+from contextlib import AbstractContextManager, nullcontext
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from fastapi import HTTPException, status
@@ -66,7 +67,7 @@ async def test_get_gifs(gif1: Gif, gif2: Gif, mock_db_session: MagicMock) -> Non
 
     mock_db_session.scalar.return_value = 2
 
-    mock_db_session.scalars.return_value = MagicMock()
+    mock_db_session.scalars.return_value = Mock()
     mock_db_session.scalars.return_value.all.return_value = [gif1, gif2]
 
     # act
@@ -125,37 +126,32 @@ async def test_get_gif_not_found(mock_db_session: MagicMock) -> None:
     assert exception.value.detail == "Gif not found"
 
 
+@pytest.mark.parametrize(
+    ("exists", "context"),
+    [
+        (True, nullcontext(True)),
+        (False, pytest.raises(HTTPException)),
+    ],
+)
 @pytest.mark.anyio
-async def test_get_exists(gif1: Gif, mock_db_session: MagicMock) -> None:
+async def test_gif_exists(
+    exists: bool,
+    context: AbstractContextManager,
+    mock_db_session: MagicMock,
+) -> None:
     # arrange
+    mock_db_session.scalar.return_value = exists
 
-    mock_db_session.scalar.return_value = True
+    # act / assert
 
-    # act
-
-    result = await GifService.gif_exists(1, mock_db_session)
-
-    # assert
-
-    assert result
-
-
-@pytest.mark.anyio
-async def test_get_not_exists(gif1: Gif, mock_db_session: MagicMock) -> None:
-    # arrange
-
-    mock_db_session.scalar.return_value = False
-
-    # act
-
-    with pytest.raises(HTTPException) as exception:
-        await GifService.gif_exists(1, mock_db_session)
-
-    # assert
-
-    assert isinstance(exception.value, HTTPException)
-    assert exception.value.status_code == status.HTTP_404_NOT_FOUND
-    assert exception.value.detail == "Gif not found"
+    with context as espected:
+        result = await GifService.gif_exists(1, mock_db_session)
+        assert result == espected
+        assert (
+            isinstance(result, bool)
+            or (espected.value.status_code == status.HTTP_404_NOT_FOUND)
+            and (espected.value.detail == "Gif not found")
+        )
 
 
 @pytest.mark.anyio
