@@ -36,6 +36,7 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
         muted
         playsInline
         className="gif"
+        data-testid="media"
       />
     );
   };
@@ -49,6 +50,7 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
         ref={gifRef}
         className="gif"
         loading="lazy"
+        data-testid="media"
       />
     );
   };
