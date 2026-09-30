@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:html": "vitest run --coverage --coverage.reporter=text --coverage.reporter=html"
   },
   "dependencies": {
     "react": "^19.2.8",
