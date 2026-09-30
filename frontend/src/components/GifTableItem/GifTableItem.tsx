@@ -72,8 +72,12 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
       <span className="media-type">{isVideo ? "▶ MP4" : "GIF"}</span>
       {isVideo ? renderVideo(gif) : renderGif(gif)}
       <div className="button-container">
-        <button onClick={fullScreen}>⛶</button>
-        <button onClick={handleDelete}>-</button>
+        <button aria-label="Fullscreen" onClick={fullScreen}>
+          ⛶
+        </button>
+        <button aria-label="Delete" onClick={handleDelete}>
+          -
+        </button>
       </div>
     </div>
   );
