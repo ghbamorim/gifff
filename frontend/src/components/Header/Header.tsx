@@ -6,15 +6,15 @@ import "./Header.scss";
 type HeaderProps = {
   onSave: (formData: FormData) => void;
   sortOrder: SortOrder;
-  onTogleSortOrder: () => void;
+  onToggleSortOrder: () => void;
 };
 
 export const Header = memo(
-  ({ onSave, sortOrder, onTogleSortOrder }: HeaderProps) => {
+  ({ onSave, sortOrder, onToggleSortOrder }: HeaderProps) => {
     return (
       <div className="button-container align-right ">
         <AddGif onSave={onSave}></AddGif>
-        <button onClick={onTogleSortOrder} aria-label="SortOrder">
+        <button onClick={onToggleSortOrder} aria-label="SortOrder">
           {sortOrder === "asc" ? "↑" : "↓"}
         </button>
       </div>
