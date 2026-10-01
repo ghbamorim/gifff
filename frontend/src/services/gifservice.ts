@@ -1,6 +1,7 @@
-import { PAGE_SIZE } from "../pages/Gifs/GifPage";
 import { settings } from "../settings";
 import type { Gif, GifPage, SortOrder } from "../types/types";
+
+export const PAGE_SIZE = 10;
 
 export class GifService {
   private readonly baseUrl: string;
@@ -22,7 +23,8 @@ export class GifService {
       { signal: abortSignal },
     );
     if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
+      const error = await response.json();
+      throw new Error(`HTTP error: ${response.status} ${error.detail}`);
     }
 
     return response.json();

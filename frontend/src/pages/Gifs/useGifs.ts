@@ -5,13 +5,13 @@ import {
 } from "../../components/GifTable/GifTable.reducer";
 import { GifService } from "../../services/gifservice";
 import type { Gif, GifPage } from "../../types/types";
-import { PAGE_SIZE } from "./GifPage";
+import { PAGE_SIZE } from "../../services/gifservice";
 
 const gifService = new GifService();
 
 export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
-  const isLoading = useRef(false);
+  const isLoadingMoreRef = useRef(false);
 
   const loadGifs = useCallback(
     async (page: number) => {
@@ -33,7 +33,7 @@ export const useGifs = () => {
       } catch (error) {
         dispatch({
           type: "load_failed",
-          error: error instanceof Error ? error.message : "Unknown Error",
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     },
@@ -41,14 +41,17 @@ export const useGifs = () => {
   );
 
   const handleLoadMore = useCallback(async () => {
-    if (isLoading.current || (state.pages > 0 && state.page >= state.pages)) {
+    if (
+      isLoadingMoreRef.current ||
+      (state.pages > 0 && state.page >= state.pages)
+    ) {
       return;
     }
-    isLoading.current = true;
+    isLoadingMoreRef.current = true;
     try {
       await loadGifs(state.page + 1);
     } finally {
-      isLoading.current = false;
+      isLoadingMoreRef.current = false;
     }
   }, [loadGifs, state.page, state.pages]);
 
