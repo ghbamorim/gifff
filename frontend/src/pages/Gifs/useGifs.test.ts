@@ -1,20 +1,18 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useGifs } from "./useGifs";
 import { GifService, PAGE_SIZE } from "../../services/gifservice";
 import { createGif } from "../../test/factories";
-import { act } from "react";
+import type { GifPage } from "../../types/types";
+import { useGifs } from "./useGifs";
 
 vi.mock("../../services/gifservice");
 
 describe("useGifs", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("should create useGifs Hook", () => {
-    const { result } = renderHook(() => {
-      return useGifs();
-    });
-    expect(result.current.status).toEqual("idle");
+    const { result } = renderHook(() => useGifs());
+    expect(result.current.status).toBe("idle");
   });
 
   it("should load gifs, if not at the last page", async () => {
@@ -49,6 +47,39 @@ describe("useGifs", () => {
     expect(GifService.prototype.getAll).not.toHaveBeenCalled();
   });
 
+  it("should not load gifs concurrently", async () => {
+    let resolvePromise!: (value: GifPage) => void;
+    const getAll = vi.mocked(GifService.prototype.getAll).mockImplementation(
+      () =>
+        new Promise<GifPage>((resolve) => {
+          resolvePromise = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useGifs());
+
+    const firstCall = result.current.handleLoadMore();
+
+    expect(getAll).toHaveBeenCalledOnce();
+
+    getAll.mockClear();
+
+    result.current.handleLoadMore();
+    expect(getAll).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolvePromise({
+        items: [],
+        page: 1,
+        page_size: PAGE_SIZE,
+        pages: 2,
+        total: 0,
+      });
+
+      await firstCall;
+    });
+  });
+
   it.each([
     { errorDescription: "Unknown error", error: "other error" },
     { errorDescription: "known error", error: new Error("known error") },
@@ -66,16 +97,13 @@ describe("useGifs", () => {
         "desc",
       );
 
-      expect(result.current.status).toEqual("error");
-      expect(result.current.error).toEqual(errorDescription);
+      expect(result.current.status).toBe("error");
+      expect(result.current.error).toBe(errorDescription);
     },
   );
 
   it("should save gifs", async () => {
     const gifs = [createGif(), createGif({ id: 2 })];
-
-    const file1 = new File(["content-1"], "gif-1.gif", { type: "image/gif" });
-    const file2 = new File(["content-2"], "gif-2.gif", { type: "image/gif" });
 
     vi.mocked(GifService.prototype.save).mockResolvedValue(gifs);
 
@@ -83,15 +111,9 @@ describe("useGifs", () => {
 
     const formData = new FormData();
 
-    const files = Array.from([file1, file2]);
-
-    files.forEach((file) => {
-      formData.append("files", file);
-    });
-
     await act(async () => await result.current.saveGif(formData));
 
-    expect(GifService.prototype.save).toHaveBeenCalledOnce();
+    expect(GifService.prototype.save).toHaveBeenCalledWith(formData);
 
     expect(result.current.gifs).toEqual(gifs);
   });
@@ -112,23 +134,23 @@ describe("useGifs", () => {
 
       expect(GifService.prototype.save).toHaveBeenCalledOnce();
 
-      expect(result.current.status).toEqual("error");
-      expect(result.current.error).toEqual(errorDescription);
+      expect(result.current.status).toBe("error");
+      expect(result.current.error).toBe(errorDescription);
     },
   );
 
-  it("Should toggle sort order", async () => {
+  it("Should toggle sort order", () => {
     const { result } = renderHook(() => useGifs());
 
-    expect(result.current.sortOrder).toEqual("desc");
+    expect(result.current.sortOrder).toBe("desc");
 
     act(() => result.current.toggleSortOrder());
 
-    expect(result.current.sortOrder).toEqual("asc");
+    expect(result.current.sortOrder).toBe("asc");
 
     act(() => result.current.toggleSortOrder());
 
-    expect(result.current.sortOrder).toEqual("desc");
+    expect(result.current.sortOrder).toBe("desc");
   });
 
   it("should delete a gif", async () => {
@@ -173,8 +195,8 @@ describe("useGifs", () => {
 
       expect(GifService.prototype.delete).toHaveBeenCalledOnce();
 
-      expect(result.current.status).toEqual("error");
-      expect(result.current.error).toEqual(errorDescription);
+      expect(result.current.status).toBe("error");
+      expect(result.current.error).toBe(errorDescription);
     },
   );
 });
