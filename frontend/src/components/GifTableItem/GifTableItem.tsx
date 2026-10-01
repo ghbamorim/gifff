@@ -36,6 +36,7 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
         muted
         playsInline
         className="gif"
+        data-testid="media"
       />
     );
   };
@@ -49,6 +50,7 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
         ref={gifRef}
         className="gif"
         loading="lazy"
+        data-testid="media"
       />
     );
   };
@@ -58,6 +60,7 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
     if (!video) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
+        /* v8 ignore next -- @preserve */
         video.play().catch(() => {});
       } else {
         video.pause();
@@ -72,8 +75,12 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
       <span className="media-type">{isVideo ? "▶ MP4" : "GIF"}</span>
       {isVideo ? renderVideo(gif) : renderGif(gif)}
       <div className="button-container">
-        <button onClick={fullScreen}>⛶</button>
-        <button onClick={handleDelete}>-</button>
+        <button aria-label="Fullscreen" onClick={fullScreen}>
+          ⛶
+        </button>
+        <button aria-label="Delete" onClick={handleDelete}>
+          -
+        </button>
       </div>
     </div>
   );

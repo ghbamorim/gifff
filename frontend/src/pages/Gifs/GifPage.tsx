@@ -1,9 +1,7 @@
-import { Header } from "../../components/Header";
+import { Header } from "../../components/Header/Header";
 import { GifTable } from "../../components/GifTable/GifTable";
 import "./GifPage.scss";
 import { useGifs } from "./useGifs";
-
-export const PAGE_SIZE = 10;
 
 export const GifPage = () => {
   const {

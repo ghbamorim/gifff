@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  lint:
-    name: Ruff
+  backend-lint:
+    name: Backend Lint (Ruff)
     runs-on: ubuntu-latest
 
     steps:
@@ -22,12 +22,12 @@ jobs:
       - name: Install Ruff
         run: pip install ruff
 
-      - name: Check Ruff
+      - name: Run Ruff
         working-directory: backend
         run: ruff check .
 
-  unit-tests:
-    name: Unit Tests
+  backend-tests:
+    name: Backend Tests
     runs-on: ubuntu-latest
 
     env:
@@ -53,3 +53,49 @@ jobs:
       - name: Run tests
         working-directory: backend
         run: pytest
+
+  frontend-lint:
+    name: Frontend Lint (ESLint)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm run test:run
