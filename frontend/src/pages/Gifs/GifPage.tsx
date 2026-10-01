@@ -21,7 +21,7 @@ export const GifPage = () => {
         <Header
           onSave={saveGif}
           sortOrder={sortOrder}
-          onTogleSortOrder={toggleSortOrder}
+          onToggleSortOrder={toggleSortOrder}
         ></Header>
       </div>
       <div>
