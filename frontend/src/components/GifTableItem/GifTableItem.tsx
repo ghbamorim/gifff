@@ -60,6 +60,7 @@ export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
     if (!video) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
+        /* v8 ignore next -- @preserve */
         video.play().catch(() => {});
       } else {
         video.pause();

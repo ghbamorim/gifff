@@ -10,7 +10,7 @@ vi.mock("../../services/gifservice");
 describe("useGifs", () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it("should create useGifs Hook", () => {
+  it("should have idle status initially", () => {
     const { result } = renderHook(() => useGifs());
     expect(result.current.status).toBe("idle");
   });
@@ -38,13 +38,13 @@ describe("useGifs", () => {
 
     expect(result.current.gifs).toEqual(gifs);
 
-    expect(GifService.prototype.getAll).toHaveBeenCalledOnce();
+    expect(getAllMock).toHaveBeenCalledOnce();
 
     getAllMock.mockClear();
 
     await act(async () => await result.current.handleLoadMore());
 
-    expect(GifService.prototype.getAll).not.toHaveBeenCalled();
+    expect(getAllMock).not.toHaveBeenCalled();
   });
 
   it("should not load gifs concurrently", async () => {
@@ -58,14 +58,14 @@ describe("useGifs", () => {
 
     const { result } = renderHook(() => useGifs());
 
-    const firstCall = result.current.handleLoadMore();
+    let firstCall: Promise<void>;
+    await act(async () => {
+      firstCall = result.current.handleLoadMore();
+
+      await result.current.handleLoadMore();
+    });
 
     expect(getAll).toHaveBeenCalledOnce();
-
-    getAll.mockClear();
-
-    result.current.handleLoadMore();
-    expect(getAll).not.toHaveBeenCalled();
 
     await act(async () => {
       resolvePromise({
@@ -116,6 +116,7 @@ describe("useGifs", () => {
     expect(GifService.prototype.save).toHaveBeenCalledWith(formData);
 
     expect(result.current.gifs).toEqual(gifs);
+    expect(result.current.status).toBe("idle");
   });
 
   it.each([
@@ -139,7 +140,7 @@ describe("useGifs", () => {
     },
   );
 
-  it("Should toggle sort order", () => {
+  it("should toggle sort order", () => {
     const { result } = renderHook(() => useGifs());
 
     expect(result.current.sortOrder).toBe("desc");
@@ -179,6 +180,7 @@ describe("useGifs", () => {
     const expectedGifs = gifs.filter((gif) => gif.id !== 2);
 
     expect(result.current.gifs).toEqual(expectedGifs);
+    expect(result.current.status).toBe("idle");
   });
 
   it.each([

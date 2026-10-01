@@ -14,7 +14,7 @@ export const Header = memo(
     return (
       <div className="button-container align-right ">
         <AddGif onSave={onSave}></AddGif>
-        <button onClick={onTogleSortOrder}>
+        <button onClick={onTogleSortOrder} aria-label="SortOrder">
           {sortOrder === "asc" ? "↑" : "↓"}
         </button>
       </div>

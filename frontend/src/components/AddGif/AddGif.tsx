@@ -1,7 +1,7 @@
 import { memo, type ChangeEvent } from "react";
 import "./AddGif.scss";
 
-const MAX_UPLOAD_SIZE = 120 * 1024 * 1024; // 20 MiB
+export const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20 MiB
 
 type AddGifProps = {
   onSave: (formData: FormData) => void;
@@ -17,7 +17,7 @@ export const AddGif = memo(({ onSave }: AddGifProps) => {
 
     const totalSize = files.reduce((total, file) => total + file.size, 0);
 
-    if (totalSize >= MAX_UPLOAD_SIZE) {
+    if (totalSize > MAX_UPLOAD_SIZE) {
       alert(
         `The total size of the files cannot exceed ${MAX_UPLOAD_SIZE} bytes`,
       );
@@ -42,6 +42,7 @@ export const AddGif = memo(({ onSave }: AddGifProps) => {
         multiple
         accept="image/gif, video/mp4"
         onChange={handleFileChange}
+        data-testid="gifInput"
       ></input>
       <label htmlFor="gif-file" className="add-button">
         +

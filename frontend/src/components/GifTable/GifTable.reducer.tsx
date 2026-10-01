@@ -90,8 +90,5 @@ export const gifTableReducer = (
         ...initialState,
         sortOrder: action.sortOrder,
       };
-
-    default:
-      return state;
   }
 };

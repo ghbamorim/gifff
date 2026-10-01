@@ -1,45 +1,67 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GifService } from "./gifservice";
+import { createGif } from "../test/factories";
 
 describe("GifService", () => {
-  const fetch = vi.spyOn(globalThis, "fetch");
+  const fetchMock = vi.spyOn(globalThis, "fetch");
   let gifService: GifService;
 
   beforeEach(() => {
-    fetch.mockReset();
+    fetchMock.mockReset();
     gifService = new GifService();
   });
 
-  it("Uses the provided base URL", async () => {
+  it("uses the provided base URL", async () => {
     gifService = new GifService("http://localhost:3000");
 
-    fetch.mockResolvedValue(new Response(JSON.stringify([])));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify([])));
 
     const formData = new FormData();
 
     await gifService.save(formData);
 
-    expect(fetch).toHaveBeenCalledExactlyOnceWith(
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
       "http://localhost:3000/gifs",
       { method: "POST", body: formData },
     );
   });
 
-  it("Fetches /gif endpoint on getAll", async () => {
-    fetch.mockResolvedValue(new Response(JSON.stringify([])));
+  it("fetches /gif endpoint on getAll", async () => {
+    const response = {
+      items: [],
+      page: 1,
+      page_size: 10,
+      pages: 0,
+      total: 0,
+    };
+    fetchMock.mockResolvedValue(Response.json(response));
 
-    await gifService.getAll(1);
+    const result = await gifService.getAll(1);
 
-    expect(fetch).toHaveBeenCalledExactlyOnceWith(
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
       "/gifs?page=1&page_size=10&sort_order=asc",
       {
         signal: undefined,
       },
     );
+
+    expect(result).toEqual(response);
+  });
+
+  it("returns saved gifs", async () => {
+    const gifs = [createGif()];
+
+    fetchMock.mockResolvedValue(Response.json(gifs));
+
+    const formData = new FormData();
+
+    const result = await gifService.save(formData);
+
+    expect(result).toEqual(gifs);
   });
 
   it("raises an exception on invalid response from getAll()", async () => {
-    fetch.mockResolvedValue(
+    fetchMock.mockResolvedValue(
       Response.json({ detail: "Invalid GIF" }, { status: 400 }),
     );
 
@@ -47,7 +69,7 @@ describe("GifService", () => {
   });
 
   it("raises an exception on invalid response from save()", async () => {
-    fetch.mockResolvedValue(
+    fetchMock.mockResolvedValue(
       Response.json({ detail: "Invalid GIF" }, { status: 400 }),
     );
 
@@ -58,18 +80,18 @@ describe("GifService", () => {
     );
   });
 
-  it("Calls fetch from delete()", async () => {
-    fetch.mockResolvedValue(new Response());
+  it("calls fetch from delete()", async () => {
+    fetchMock.mockResolvedValue(new Response());
 
     await gifService.delete(1);
 
-    expect(fetch).toHaveBeenCalledExactlyOnceWith("/gifs/1", {
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("/gifs/1", {
       method: "DELETE",
     });
   });
 
   it("raises an exception on invalid response from delete()", async () => {
-    fetch.mockResolvedValue(
+    fetchMock.mockResolvedValue(
       Response.json({ detail: "Invalid GIF" }, { status: 400 }),
     );
 

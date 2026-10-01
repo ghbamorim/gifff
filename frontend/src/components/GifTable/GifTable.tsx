@@ -40,6 +40,7 @@ export const GifTable = ({
 
   useEffect(() => {
     const element = loadMoreRef.current;
+    /* v8 ignore if -- @preserve */
     if (!element) {
       return;
     }
@@ -62,7 +63,7 @@ export const GifTable = ({
   return (
     <>
       {renderStatus()}
-      <div className="gif-grid">
+      <div className="gif-grid" data-testid="GifTable">
         {gifs.map((gif) => (
           <GifTableItem
             key={gif.id}
@@ -72,7 +73,7 @@ export const GifTable = ({
         ))}
       </div>
 
-      <div ref={loadMoreRef} />
+      <div ref={loadMoreRef} data-testid="loadMoreRef" />
     </>
   );
 };

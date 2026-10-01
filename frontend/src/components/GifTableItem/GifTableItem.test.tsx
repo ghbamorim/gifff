@@ -9,13 +9,19 @@ const gif = createGif();
 
 const video = createVideo();
 
+const createIntersectionEntry = (isIntersecting: boolean, target: Element) =>
+  ({
+    isIntersecting,
+    target,
+  }) as IntersectionObserverEntry;
+
 describe("GifTableItem", () => {
   beforeEach(() => vi.restoreAllMocks());
 
   it.each([
     { type: "gif", gif, label: "GIF" },
     { type: "video", gif: video, label: "▶ MP4" },
-  ])("Renders a $type", ({ gif, label }) => {
+  ])("renders a $type", ({ gif, label }) => {
     render(<GifTableItem gif={gif} onDelete={vi.fn()}></GifTableItem>);
 
     const element = screen.getByText(label);
@@ -25,10 +31,13 @@ describe("GifTableItem", () => {
   it.each([
     { type: "gif", gif, prototype: HTMLImageElement.prototype },
     { type: "video", gif: video, prototype: HTMLVideoElement.prototype },
-  ])("Calls fullscreen for $type element", async ({ gif, prototype }) => {
+  ])("calls fullscreen for $type element", async ({ gif, prototype }) => {
     const requestFullscreen = vi.fn().mockResolvedValue(undefined);
 
-    prototype.requestFullscreen = requestFullscreen;
+    Object.defineProperty(prototype, "requestFullscreen", {
+      configurable: true,
+      value: requestFullscreen,
+    });
 
     const user = userEvent.setup();
     render(<GifTableItem gif={gif} onDelete={vi.fn()}></GifTableItem>);
@@ -42,7 +51,7 @@ describe("GifTableItem", () => {
     { confirm: true, expectedCalls: 1 },
     { confirm: false, expectedCalls: 0 },
   ])(
-    "Handles delete after confirm diaglog returns $confirm",
+    "handles delete after confirm dialog returns $confirm",
     async ({ confirm, expectedCalls }) => {
       const user = userEvent.setup();
       const onDelete = vi.fn();
@@ -64,7 +73,7 @@ describe("GifTableItem", () => {
   it.each([
     { action: "plays", viewPortAction: "enters", isIntersecting: true },
     { action: "pauses", viewPortAction: "leaves", isIntersecting: false },
-  ])("$action the vídeo when it $viewPortAction", ({ isIntersecting }) => {
+  ])("$action the video when it $viewPortAction", ({ isIntersecting }) => {
     const play = vi
       .spyOn(HTMLVideoElement.prototype, "play")
       .mockResolvedValue(undefined);
@@ -73,18 +82,9 @@ describe("GifTableItem", () => {
       .spyOn(HTMLVideoElement.prototype, "pause")
       .mockImplementation(() => {});
 
-    render(<GifTableItem gif={gif} onDelete={vi.fn()}></GifTableItem>);
+    render(<GifTableItem gif={video} onDelete={vi.fn()}></GifTableItem>);
 
     const videoElement = screen.getByTestId("media");
-
-    const createIntersectionEntry = (
-      isIntersecting: boolean,
-      target: Element,
-    ) =>
-      ({
-        isIntersecting,
-        target,
-      }) as IntersectionObserverEntry;
 
     intersectionObserverCallback!(
       [createIntersectionEntry(isIntersecting, videoElement!)],
