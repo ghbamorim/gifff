@@ -1,100 +1,91 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createGif, createVideo } from "../../test/factories";
 import { intersectionObserverCallback } from "../../test/setup";
-import { GifTableItem } from "./GifTableItem";
+import type { PageStatus } from "../../types/types";
+import { GifTable } from "../GifTable/GifTable";
 
-const gif = createGif();
+describe("GifTable", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
 
-const video = createVideo();
+  it("renders gif and video items", () => {
+    render(
+      <GifTable
+        gifs={[createGif(), createVideo({ id: 2 })]}
+        onDelete={vi.fn()}
+        onLoadMore={vi.fn()}
+        status="idle"
+        error=""
+      />,
+    );
 
-const createIntersectionEntry = (isIntersecting: boolean, target: Element) =>
-  ({
-    isIntersecting,
-    target,
-  }) as IntersectionObserverEntry;
+    const element = screen.getByTestId("GifTable");
+    expect(element).toBeInTheDocument();
 
-describe("GifTableItem", () => {
-  beforeEach(() => vi.restoreAllMocks());
+    const gifElement = screen.getByText("GIF");
+    expect(gifElement).toBeInTheDocument();
 
-  it.each([
-    { type: "gif", gif, label: "GIF" },
-    { type: "video", gif: video, label: "▶ MP4" },
-  ])("renders a $type", ({ gif, label }) => {
-    render(<GifTableItem gif={gif} onDelete={vi.fn()}></GifTableItem>);
+    const videoElement = screen.getByText("▶ MP4");
+    expect(videoElement).toBeInTheDocument();
+  });
 
-    const element = screen.getByText(label);
+  it.each<{ status: PageStatus; text: string }>([
+    { status: "loading", text: "Loading" },
+    { status: "saving", text: "Saving" },
+    { status: "deleting", text: "Deleting" },
+    { status: "error", text: "An error" },
+  ])("renders GifTable in $text state", ({ status, text }) => {
+    render(
+      <GifTable
+        gifs={[]}
+        onDelete={vi.fn()}
+        onLoadMore={vi.fn()}
+        status={status}
+        error={status === "error" ? text : null}
+      />,
+    );
+
+    const element = screen.getByText(text);
     expect(element).toBeInTheDocument();
   });
 
   it.each([
-    { type: "gif", gif, prototype: HTMLImageElement.prototype },
-    { type: "video", gif: video, prototype: HTMLVideoElement.prototype },
-  ])("calls fullscreen for $type element", async ({ gif, prototype }) => {
-    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
-
-    Object.defineProperty(prototype, "requestFullscreen", {
-      configurable: true,
-      value: requestFullscreen,
-    });
-
-    const user = userEvent.setup();
-    render(<GifTableItem gif={gif} onDelete={vi.fn()}></GifTableItem>);
-    const element = screen.getByRole("button", { name: "Fullscreen" });
-    await user.click(element);
-
-    expect(requestFullscreen).toHaveBeenCalledOnce();
-  });
-
-  it.each([
-    { confirm: true, expectedCalls: 1 },
-    { confirm: false, expectedCalls: 0 },
+    { scenario: "enters", isIntersecting: true, expectedExecCount: 1 },
+    { scenario: "does not enter", isIntersecting: false, expectedExecCount: 0 },
   ])(
-    "handles delete after confirm dialog returns $confirm",
-    async ({ confirm, expectedCalls }) => {
-      const user = userEvent.setup();
-      const onDelete = vi.fn();
+    "loads more gifs when sentinel $scenario the viewport",
+    ({ isIntersecting, expectedExecCount }) => {
+      const onLoadMore = vi.fn();
 
-      vi.spyOn(window, "confirm").mockReturnValue(confirm);
+      render(
+        <GifTable
+          gifs={[]}
+          onDelete={vi.fn()}
+          onLoadMore={onLoadMore}
+          status="idle"
+          error=""
+        />,
+      );
 
-      render(<GifTableItem gif={gif} onDelete={onDelete}></GifTableItem>);
+      const createIntersectionEntry = (
+        isIntersecting: boolean,
+        target: Element,
+      ) =>
+        ({
+          isIntersecting,
+          target,
+        }) as IntersectionObserverEntry;
 
-      const element = screen.getByRole("button", { name: "Delete" });
+      const element = screen.getByTestId("loadMoreRef");
 
-      await user.click(element);
+      intersectionObserverCallback!(
+        [createIntersectionEntry(isIntersecting, element)],
+        {} as IntersectionObserver,
+      );
 
-      expect(window.confirm).toHaveBeenCalledExactlyOnceWith("Confirm delete?");
-
-      expect(onDelete).toHaveBeenCalledTimes(expectedCalls);
+      expect(onLoadMore).toHaveBeenCalledTimes(expectedExecCount);
     },
   );
-
-  it.each([
-    { action: "plays", viewPortAction: "enters", isIntersecting: true },
-    { action: "pauses", viewPortAction: "leaves", isIntersecting: false },
-  ])("$action the video when it $viewPortAction", ({ isIntersecting }) => {
-    const play = vi
-      .spyOn(HTMLVideoElement.prototype, "play")
-      .mockResolvedValue(undefined);
-
-    const pause = vi
-      .spyOn(HTMLVideoElement.prototype, "pause")
-      .mockImplementation(() => {});
-
-    render(<GifTableItem gif={video} onDelete={vi.fn()}></GifTableItem>);
-
-    const videoElement = screen.getByTestId("media");
-
-    intersectionObserverCallback!(
-      [createIntersectionEntry(isIntersecting, videoElement!)],
-      {} as IntersectionObserver,
-    );
-
-    const expected = isIntersecting ? play : pause;
-    const notExpected = isIntersecting ? pause : play;
-
-    expect(expected).toHaveBeenCalled();
-    expect(notExpected).not.toHaveBeenCalled();
-  });
 });

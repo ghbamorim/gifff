@@ -9,16 +9,18 @@ describe("GifTable", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
+
   it("renders gif and video items", () => {
     render(
       <GifTable
         gifs={[createGif(), createVideo({ id: 2 })]}
         onDelete={vi.fn()}
         onLoadMore={vi.fn()}
-        status={"idle"}
-        error={""}
-      ></GifTable>,
+        status="idle"
+        error=""
+      />,
     );
+
     const element = screen.getByTestId("GifTable");
     expect(element).toBeInTheDocument();
 
@@ -42,8 +44,9 @@ describe("GifTable", () => {
         onLoadMore={vi.fn()}
         status={status}
         error={status === "error" ? text : null}
-      ></GifTable>,
+      />,
     );
+
     const element = screen.getByText(text);
     expect(element).toBeInTheDocument();
   });
@@ -61,9 +64,9 @@ describe("GifTable", () => {
           gifs={[]}
           onDelete={vi.fn()}
           onLoadMore={onLoadMore}
-          status={"idle"}
-          error={""}
-        ></GifTable>,
+          status="idle"
+          error=""
+        />,
       );
 
       const createIntersectionEntry = (
@@ -78,7 +81,7 @@ describe("GifTable", () => {
       const element = screen.getByTestId("loadMoreRef");
 
       intersectionObserverCallback!(
-        [createIntersectionEntry(isIntersecting, element!)],
+        [createIntersectionEntry(isIntersecting, element)],
         {} as IntersectionObserver,
       );
 

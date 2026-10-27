@@ -6,6 +6,7 @@ import { settings } from "../../settings";
 type GifTableItemProps = {
   gif: Gif;
   onDelete: (gif_id: number) => void;
+  onFullscreem: (gif: Gif) => void;
 };
 
 export const GifTableItem = memo(({ gif, onDelete }: GifTableItemProps) => {
