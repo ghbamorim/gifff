@@ -39,43 +39,59 @@ jobs:
           import os
           import subprocess
 
-          image = os.environ["IMAGE"]
+          instance_id = "i-04853d8abcb04211c"
+          region = "us-east-2"
+          registry = "242627333067.dkr.ecr.us-east-2.amazonaws.com"
+          secret_arn = "arn:aws:secretsmanager:us-east-2:242627333067:secret:rds!db-21c08413-9604-4a88-8e3a-ed2cc689949e-Pu6OV4"
+
           commands = [
               "set -eu",
-              "REGION=us-east-2",
-              "REGISTRY=242627333067.dkr.ecr.us-east-2.amazonaws.com",
-              f"IMAGE={image}",
-              "aws ecr get-login-password --region \"$REGION\" | sudo docker login --username AWS --password-stdin \"$REGISTRY\"",
+              f"IMAGE='{os.environ['IMAGE']}'",
+              f"REGISTRY='{registry}'",
+              f"SECRET_ARN='{secret_arn}'",
+              "SECRET=$(aws secretsmanager get-secret-value --region us-east-2 --secret-id \"$SECRET_ARN\" --query SecretString --output text)",
+              "export POSTGRES_USER=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"username\"])')",
+              "export POSTGRES_PASSWORD=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"password\"])')",
+              "export POSTGRES_DB=app_db",
+              "export POSTGRES_HOST=gifff-postgres.cbwmwcm8yv8g.us-east-2.rds.amazonaws.com",
+              "export POSTGRES_PORT=5432",
+              "aws ecr get-login-password --region us-east-2 | sudo docker login --username AWS --password-stdin \"$REGISTRY\"",
               "sudo docker pull \"$IMAGE\"",
+              "ENV_FILE=$(mktemp)",
+              "chmod 600 \"$ENV_FILE\"",
+              "trap 'rm -f \"$ENV_FILE\"' EXIT",
+              "printf 'POSTGRES_USER=%s\\nPOSTGRES_PASSWORD=%s\\nPOSTGRES_DB=%s\\nPOSTGRES_HOST=%s\\nPOSTGRES_PORT=%s\\n' \"$POSTGRES_USER\" \"$POSTGRES_PASSWORD\" \"$POSTGRES_DB\" \"$POSTGRES_HOST\" \"$POSTGRES_PORT\" > \"$ENV_FILE\"",
               "sudo docker rm -f gifff || true",
-              "sudo docker run -d --name gifff --restart unless-stopped -p 80:8000 \"$IMAGE\"",
-              "sudo docker ps"
+              "sudo docker run -d --name gifff --restart unless-stopped -p 80:8000 --env-file \"$ENV_FILE\" \"$IMAGE\"",
+              "sleep 5",
+              "sudo docker ps",
+              "curl --fail --max-time 10 http://localhost:80/"
           ]
 
-          result = subprocess.check_output([
+          command_id = subprocess.check_output([
               "aws", "ssm", "send-command",
-              "--region", "us-east-2",
-              "--instance-ids", "i-04853d8abcb04211c",
+              "--region", region,
+              "--instance-ids", instance_id,
               "--document-name", "AWS-RunShellScript",
               "--parameters", json.dumps({"commands": commands}),
               "--query", "Command.CommandId",
               "--output", "text"
           ], text=True).strip()
 
-          print(f"SSM Command ID: {result}")
+          print(f"SSM Command ID: {command_id}")
 
           wait = subprocess.run([
               "aws", "ssm", "wait", "command-executed",
-              "--region", "us-east-2",
-              "--command-id", result,
-              "--instance-id", "i-04853d8abcb04211c"
+              "--region", region,
+              "--command-id", command_id,
+              "--instance-id", instance_id
           ])
 
           subprocess.run([
               "aws", "ssm", "get-command-invocation",
-              "--region", "us-east-2",
-              "--command-id", result,
-              "--instance-id", "i-04853d8abcb04211c",
+              "--region", region,
+              "--command-id", command_id,
+              "--instance-id", instance_id,
               "--query", "{Status:Status,Output:StandardOutputContent,Errors:StandardErrorContent}",
               "--output", "json"
           ], check=True)
