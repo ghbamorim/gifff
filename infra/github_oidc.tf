@@ -27,10 +27,10 @@ data "aws_iam_policy_document" "github_assume" {
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
-        "repo:ghbamorim@${var.github_owner_id}/gifff@${var.github_repository_id}:ref:refs/heads/terraform_setup"
+        "repo:ghbamorim@${var.github_owner_id}/gifff@${var.github_repository_id}:ref:refs/tags/v*"
       ]
     }
   }

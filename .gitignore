@@ -231,4 +231,4 @@ crash.log
 crash.*.log
 
 # Local database backups
-gifff-db.dump
+gifff-db.dump*.dump

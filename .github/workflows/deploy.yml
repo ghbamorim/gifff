@@ -1,38 +1,69 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - terraform_setup
-  workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Validate release belongs to main
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin main
+
+          TAG_COMMIT=$(git rev-parse "${RELEASE_TAG}^{commit}")
+
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
+            echo "Release tag does not belong to main."
+            exit 1
+          fi
+
+          echo "Release validated: $RELEASE_TAG"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-2
 
-      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          IMAGE=242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${GITHUB_SHA}
+          set -euo pipefail
+
+          IMAGE="242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${RELEASE_TAG}"
+
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Deploy to EC2
         env:
-          IMAGE: 242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${{ github.sha }}
+          IMAGE: 242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${{ github.event.release.tag_name }}
         run: |
           python3 - <<'PY'
           import json
@@ -52,6 +83,7 @@ jobs:
               "SECRET=$(aws secretsmanager get-secret-value --region us-east-2 --secret-id \"$SECRET_ARN\" --query SecretString --output text)",
               "export POSTGRES_USER=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"username\"])')",
               "export POSTGRES_PASSWORD=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"password\"])')",
+              "unset SECRET",
               "export POSTGRES_DB=app_db",
               "export POSTGRES_HOST=gifff-postgres.cbwmwcm8yv8g.us-east-2.rds.amazonaws.com",
               "export POSTGRES_PORT=5432",
