@@ -13,6 +13,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,3 +29,57 @@ jobs:
           IMAGE=242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${GITHUB_SHA}
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
+
+      - name: Deploy to EC2
+        env:
+          IMAGE: 242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          image = os.environ["IMAGE"]
+          commands = [
+              "set -eu",
+              "REGION=us-east-2",
+              "REGISTRY=242627333067.dkr.ecr.us-east-2.amazonaws.com",
+              f"IMAGE={image}",
+              "aws ecr get-login-password --region \"$REGION\" | sudo docker login --username AWS --password-stdin \"$REGISTRY\"",
+              "sudo docker pull \"$IMAGE\"",
+              "sudo docker rm -f gifff || true",
+              "sudo docker run -d --name gifff --restart unless-stopped -p 80:8000 \"$IMAGE\"",
+              "sudo docker ps"
+          ]
+
+          result = subprocess.check_output([
+              "aws", "ssm", "send-command",
+              "--region", "us-east-2",
+              "--instance-ids", "i-04853d8abcb04211c",
+              "--document-name", "AWS-RunShellScript",
+              "--parameters", json.dumps({"commands": commands}),
+              "--query", "Command.CommandId",
+              "--output", "text"
+          ], text=True).strip()
+
+          print(f"SSM Command ID: {result}")
+
+          wait = subprocess.run([
+              "aws", "ssm", "wait", "command-executed",
+              "--region", "us-east-2",
+              "--command-id", result,
+              "--instance-id", "i-04853d8abcb04211c"
+          ])
+
+          subprocess.run([
+              "aws", "ssm", "get-command-invocation",
+              "--region", "us-east-2",
+              "--command-id", result,
+              "--instance-id", "i-04853d8abcb04211c",
+              "--query", "{Status:Status,Output:StandardOutputContent,Errors:StandardErrorContent}",
+              "--output", "json"
+          ], check=True)
+
+          if wait.returncode:
+              raise SystemExit(wait.returncode)
+          PY

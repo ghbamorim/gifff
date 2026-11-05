@@ -72,3 +72,33 @@ resource "aws_iam_role_policy" "github_ecr" {
 output "github_deploy_role_arn" {
   value = aws_iam_role.github_deploy.arn
 }
+
+
+
+resource "aws_iam_role_policy" "github_ssm" {
+  name = "gifff-ssm-deploy"
+  role = aws_iam_role.github_deploy.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:SendCommand"
+        ]
+        Resource = [
+          "arn:aws:ssm:us-east-2::document/AWS-RunShellScript",
+          aws_instance.app.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetCommandInvocation"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
