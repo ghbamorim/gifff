@@ -118,9 +118,13 @@
         "s3:GetObject",
         "s3:PutObject",
         "s3:DeleteObject",
-        "s3:DeleteObjectVersion"
+        "s3:DeleteObjectVersion",
+        "s3:ListBucket"
       ],
-      "Resource": "arn:aws:s3:::aws-pratice-attachments-*/*"
+      "Resource": [
+        "arn:aws:s3:::aws-pratice-attachments-*/*",
+        "arn:aws:s3:::aws-pratice-terraform-state-242627333067-us-east-2/migrations/*"
+      ]
     },
     {
       "Sid": "ManageCloudFront",
@@ -172,6 +176,17 @@
         "iam:CreateServiceLinkedRole"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "ListMigrationBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::aws-pratice-terraform-state-242627333067-us-east-2",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": ["migrations", "migrations/*"]
+        }
+      }
     }
   ]
 }
