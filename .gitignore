@@ -220,3 +220,15 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+**/*.tfvars.json
+*.tfplan
+crash.log
+crash.*.log
+
+# Local database backups
+gifff-db.dump*.dump

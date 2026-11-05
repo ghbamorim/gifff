@@ -1,0 +1,133 @@
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Validate release belongs to main
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin main
+
+          TAG_COMMIT=$(git rev-parse "${RELEASE_TAG}^{commit}")
+
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
+            echo "Release tag does not belong to main."
+            exit 1
+          fi
+
+          echo "Release validated: $RELEASE_TAG"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-2
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          IMAGE="242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${RELEASE_TAG}"
+
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy to EC2
+        env:
+          IMAGE: 242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${{ github.event.release.tag_name }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          instance_id = "i-04853d8abcb04211c"
+          region = "us-east-2"
+          registry = "242627333067.dkr.ecr.us-east-2.amazonaws.com"
+          secret_arn = "arn:aws:secretsmanager:us-east-2:242627333067:secret:rds!db-21c08413-9604-4a88-8e3a-ed2cc689949e-Pu6OV4"
+
+          commands = [
+              "set -eu",
+              f"IMAGE='{os.environ['IMAGE']}'",
+              f"REGISTRY='{registry}'",
+              f"SECRET_ARN='{secret_arn}'",
+              "SECRET=$(aws secretsmanager get-secret-value --region us-east-2 --secret-id \"$SECRET_ARN\" --query SecretString --output text)",
+              "export POSTGRES_USER=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"username\"])')",
+              "export POSTGRES_PASSWORD=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"password\"])')",
+              "unset SECRET",
+              "export POSTGRES_DB=app_db",
+              "export POSTGRES_HOST=gifff-postgres.cbwmwcm8yv8g.us-east-2.rds.amazonaws.com",
+              "export POSTGRES_PORT=5432",
+              "aws ecr get-login-password --region us-east-2 | sudo docker login --username AWS --password-stdin \"$REGISTRY\"",
+              "sudo docker pull \"$IMAGE\"",
+              "ENV_FILE=$(mktemp)",
+              "chmod 600 \"$ENV_FILE\"",
+              "trap 'rm -f \"$ENV_FILE\"' EXIT",
+              "printf 'POSTGRES_USER=%s\\nPOSTGRES_PASSWORD=%s\\nPOSTGRES_DB=%s\\nPOSTGRES_HOST=%s\\nPOSTGRES_PORT=%s\\n' \"$POSTGRES_USER\" \"$POSTGRES_PASSWORD\" \"$POSTGRES_DB\" \"$POSTGRES_HOST\" \"$POSTGRES_PORT\" > \"$ENV_FILE\"",
+              "sudo docker rm -f gifff || true",
+              "sudo docker run -d --name gifff --restart unless-stopped -p 80:8000 --env-file \"$ENV_FILE\" \"$IMAGE\"",
+              "sleep 5",
+              "sudo docker ps",
+              "curl --fail --max-time 10 http://localhost:80/"
+          ]
+
+          command_id = subprocess.check_output([
+              "aws", "ssm", "send-command",
+              "--region", region,
+              "--instance-ids", instance_id,
+              "--document-name", "AWS-RunShellScript",
+              "--parameters", json.dumps({"commands": commands}),
+              "--query", "Command.CommandId",
+              "--output", "text"
+          ], text=True).strip()
+
+          print(f"SSM Command ID: {command_id}")
+
+          wait = subprocess.run([
+              "aws", "ssm", "wait", "command-executed",
+              "--region", region,
+              "--command-id", command_id,
+              "--instance-id", instance_id
+          ])
+
+          subprocess.run([
+              "aws", "ssm", "get-command-invocation",
+              "--region", region,
+              "--command-id", command_id,
+              "--instance-id", instance_id,
+              "--query", "{Status:Status,Output:StandardOutputContent,Errors:StandardErrorContent}",
+              "--output", "json"
+          ], check=True)
+
+          if wait.returncode:
+              raise SystemExit(wait.returncode)
+          PY
