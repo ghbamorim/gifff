@@ -1,3 +1,4 @@
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -21,11 +22,31 @@ resource "aws_instance" "app" {
   iam_instance_profile        = aws_iam_instance_profile.ec2.name
   associate_public_ip_address = true
 
+  user_data_replace_on_change = true
+
   user_data = <<-EOF
     #!/bin/bash
     set -euxo pipefail
+
+    # Install Docker
     dnf install -y docker
     systemctl enable --now docker
+
+    # Install Docker Compose plugin
+    COMPOSE_VERSION="v2.40.3"
+    ARCH="$(uname -m)"
+
+    mkdir -p /usr/local/lib/docker/cli-plugins
+
+    curl --fail --location --show-error --silent \
+      "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-linux-$${ARCH}" \
+      --output /usr/local/lib/docker/cli-plugins/docker-compose
+
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+    # Verify installation
+    docker --version
+    docker compose version
   EOF
 
   root_block_device {

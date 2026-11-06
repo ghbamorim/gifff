@@ -102,3 +102,23 @@ resource "aws_iam_role_policy" "github_ssm" {
     ]
   })
 }
+
+
+resource "aws_iam_role_policy" "github_discovery" {
+  name = "gifff-resource-discovery"
+  role = aws_iam_role.github_deploy.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeInstances",
+          "rds:DescribeDBInstances"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
