@@ -56,78 +56,213 @@ jobs:
         run: |
           set -euo pipefail
 
-          IMAGE="242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${RELEASE_TAG}"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          IMAGE="${REGISTRY}/gifff:${RELEASE_TAG}"
 
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Deploy to EC2
         env:
-          IMAGE: 242627333067.dkr.ecr.us-east-2.amazonaws.com/gifff:${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           python3 - <<'PY'
+          import base64
           import json
           import os
           import subprocess
+          import time
 
-          instance_id = "i-04853d8abcb04211c"
-          region = "us-east-2"
-          registry = "242627333067.dkr.ecr.us-east-2.amazonaws.com"
-          secret_arn = "arn:aws:secretsmanager:us-east-2:242627333067:secret:rds!db-21c08413-9604-4a88-8e3a-ed2cc689949e-Pu6OV4"
+          region = os.environ["AWS_REGION"]
+          version = os.environ["RELEASE_TAG"]
 
-          commands = [
-              "set -eu",
-              f"IMAGE='{os.environ['IMAGE']}'",
-              f"REGISTRY='{registry}'",
-              f"SECRET_ARN='{secret_arn}'",
-              "SECRET=$(aws secretsmanager get-secret-value --region us-east-2 --secret-id \"$SECRET_ARN\" --query SecretString --output text)",
-              "export POSTGRES_USER=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"username\"])')",
-              "export POSTGRES_PASSWORD=$(printf '%s' \"$SECRET\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"password\"])')",
-              "unset SECRET",
-              "export POSTGRES_DB=app_db",
-              "export POSTGRES_HOST=gifff-postgres.cbwmwcm8yv8g.us-east-2.rds.amazonaws.com",
-              "export POSTGRES_PORT=5432",
-              "aws ecr get-login-password --region us-east-2 | sudo docker login --username AWS --password-stdin \"$REGISTRY\"",
-              "sudo docker pull \"$IMAGE\"",
-              "ENV_FILE=$(mktemp)",
-              "chmod 600 \"$ENV_FILE\"",
-              "trap 'rm -f \"$ENV_FILE\"' EXIT",
-              "printf 'POSTGRES_USER=%s\\nPOSTGRES_PASSWORD=%s\\nPOSTGRES_DB=%s\\nPOSTGRES_HOST=%s\\nPOSTGRES_PORT=%s\\n' \"$POSTGRES_USER\" \"$POSTGRES_PASSWORD\" \"$POSTGRES_DB\" \"$POSTGRES_HOST\" \"$POSTGRES_PORT\" > \"$ENV_FILE\"",
-              "sudo docker rm -f gifff || true",
-              "sudo docker run -d --name gifff --restart unless-stopped -p 80:8000 --env-file \"$ENV_FILE\" \"$IMAGE\"",
-              "sleep 5",
-              "sudo docker ps",
-              "curl --fail --max-time 10 http://localhost:80/"
+          def aws(*args):
+              return subprocess.check_output(
+                  ["aws", *args, "--region", region, "--output", "text"],
+                  text=True,
+              ).strip()
+
+          account_id = aws(
+              "sts", "get-caller-identity",
+              "--query", "Account",
+          )
+
+          registry = f"{account_id}.dkr.ecr.{region}.amazonaws.com"
+          image = f"{registry}/gifff:{version}"
+
+          instance_ids = aws(
+              "ec2", "describe-instances",
+              "--filters",
+              "Name=tag:Name,Values=gifff-app",
+              "Name=instance-state-name,Values=running",
+              "--query", "Reservations[].Instances[].InstanceId",
+          ).split()
+
+          if len(instance_ids) != 1:
+              raise SystemExit(
+                  f"Expected exactly one running EC2, found: {instance_ids}"
+              )
+
+          instance_id = instance_ids[0]
+
+          db = json.loads(subprocess.check_output(
+              [
+                  "aws", "rds", "describe-db-instances",
+                  "--region", region,
+                  "--output", "json",
+              ],
+              text=True,
+          ))
+
+          databases = [
+              item for item in db["DBInstances"]
+              if item["DBInstanceIdentifier"] == "gifff-postgres"
           ]
 
-          command_id = subprocess.check_output([
-              "aws", "ssm", "send-command",
-              "--region", region,
-              "--instance-ids", instance_id,
-              "--document-name", "AWS-RunShellScript",
-              "--parameters", json.dumps({"commands": commands}),
-              "--query", "Command.CommandId",
-              "--output", "text"
-          ], text=True).strip()
+          if len(databases) != 1:
+              raise SystemExit("Expected exactly one gifff-postgres RDS instance")
 
+          database = databases[0]
+          secret_arn = database["MasterUserSecret"]["SecretArn"]
+          db_host = database["Endpoint"]["Address"]
+          db_port = database["Endpoint"]["Port"]
+          db_name = database["DBName"]
+
+          compose_content = open(
+              "deploy/compose.yaml", encoding="utf-8"
+          ).read()
+
+          compose_base64 = base64.b64encode(
+              compose_content.encode()
+          ).decode()
+
+          script = f"""#!/bin/bash
+          set -euo pipefail
+          umask 077
+
+          REGION='{region}'
+          REGISTRY='{registry}'
+          APP_IMAGE='{image}'
+          APP_VERSION='{version}'
+          RDS_SECRET_ARN='{secret_arn}'
+          POSTGRES_HOST='{db_host}'
+          POSTGRES_PORT='{db_port}'
+          POSTGRES_DB='{db_name}'
+
+          mkdir -p /opt/gifff
+
+          echo '{compose_base64}' | base64 -d > /opt/gifff/compose.yaml
+
+          aws secretsmanager get-secret-value \
+            --region "$REGION" \
+            --secret-id "$RDS_SECRET_ARN" \
+            --query SecretString \
+            --output text > /opt/gifff/rds-secret.json
+
+          aws secretsmanager get-secret-value \
+            --region "$REGION" \
+            --secret-id gifff/datadog/api-key \
+            --query SecretString \
+            --output text > /opt/gifff/datadog-key
+
+          python3 - <<'ENV'
+          import json
+          import os
+          import shlex
+
+          with open("/opt/gifff/rds-secret.json") as file:
+              secret = json.load(file)
+
+          with open("/opt/gifff/datadog-key") as file:
+              datadog_key = file.read().strip()
+
+          values = {{
+              "APP_IMAGE": "{image}",
+              "APP_VERSION": "{version}",
+              "POSTGRES_USER": secret["username"],
+              "POSTGRES_PASSWORD": secret["password"],
+              "POSTGRES_DB": "{db_name}",
+              "POSTGRES_HOST": "{db_host}",
+              "POSTGRES_PORT": "{db_port}",
+              "DD_API_KEY": datadog_key,
+          }}
+
+          with open("/opt/gifff/.env", "w") as file:
+              for key, value in values.items():
+                  file.write(f"{{key}}={{shlex.quote(str(value))}}\\n")
+
+          os.chmod("/opt/gifff/.env", 0o600)
+          ENV
+
+          rm -f /opt/gifff/rds-secret.json /opt/gifff/datadog-key
+
+          aws ecr get-login-password --region "$REGION" | \
+            docker login --username AWS --password-stdin "$REGISTRY"
+
+          docker pull "$APP_IMAGE"
+
+          # Remove the legacy standalone container, if present.
+          if ! docker inspect gifff --format '{{{{ index .Config.Labels "com.docker.compose.project" }}}}' 2>/dev/null | grep -qx gifff; then
+            docker rm -f gifff 2>/dev/null || true
+          fi
+
+          cd /opt/gifff
+
+          docker compose --env-file .env -p gifff up -d --remove-orphans
+
+          sleep 10
+
+          docker compose --env-file .env -p gifff ps
+
+          curl --fail --max-time 15 http://localhost:80/
+          """
+
+          commands = [
+              "sudo bash -c " + json.dumps(script)
+          ]
+
+          response = json.loads(subprocess.check_output(
+              [
+                  "aws", "ssm", "send-command",
+                  "--region", region,
+                  "--instance-ids", instance_id,
+                  "--document-name", "AWS-RunShellScript",
+                  "--parameters", json.dumps({"commands": commands}),
+                  "--output", "json",
+              ],
+              text=True,
+          ))
+
+          command_id = response["Command"]["CommandId"]
+          print(f"Instance: {instance_id}")
           print(f"SSM Command ID: {command_id}")
 
-          wait = subprocess.run([
-              "aws", "ssm", "wait", "command-executed",
-              "--region", region,
-              "--command-id", command_id,
-              "--instance-id", instance_id
-          ])
+          for attempt in range(90):
+              time.sleep(5)
 
-          subprocess.run([
-              "aws", "ssm", "get-command-invocation",
-              "--region", region,
-              "--command-id", command_id,
-              "--instance-id", instance_id,
-              "--query", "{Status:Status,Output:StandardOutputContent,Errors:StandardErrorContent}",
-              "--output", "json"
-          ], check=True)
+              invocation = json.loads(subprocess.check_output(
+                  [
+                      "aws", "ssm", "get-command-invocation",
+                      "--region", region,
+                      "--command-id", command_id,
+                      "--instance-id", instance_id,
+                      "--output", "json",
+                  ],
+                  text=True,
+              ))
 
-          if wait.returncode:
-              raise SystemExit(wait.returncode)
+              status = invocation["Status"]
+
+              if status in ("Success", "Failed", "Cancelled", "TimedOut"):
+                  print("Status:", status)
+                  print(invocation.get("StandardOutputContent", ""))
+                  print(invocation.get("StandardErrorContent", ""))
+
+                  if status != "Success":
+                      raise SystemExit(1)
+
+                  break
+          else:
+              raise SystemExit("Deployment timed out")
           PY
