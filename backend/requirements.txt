@@ -10,3 +10,4 @@ pytest-cov
 httpx2
 pytest-anyio
 ruff
+ddtrace
