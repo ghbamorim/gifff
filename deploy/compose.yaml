@@ -18,6 +18,7 @@ services:
       DD_TRACE_ENABLED: "true"
       DD_TRACE_AGENT_URL: http://datadog-agent:8126
       DD_LOGS_INJECTION: "true"
+      DD_TRACE_SAMPLING_RULES: '[{"resource":"GET /health","sample_rate":0.0}]'
     labels:
       com.datadoghq.tags.service: gifff
       com.datadoghq.tags.env: production
@@ -28,11 +29,11 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)",
         ]
       interval: 15s
-      timeout: 10s
-      retries: 5
+      timeout: 5s
+      retries: 3
       start_period: 30s
 
   datadog-agent:
