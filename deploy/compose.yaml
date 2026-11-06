@@ -18,8 +18,19 @@ services:
     labels:
       com.datadoghq.tags.service: gifff
       com.datadoghq.tags.env: production
-    depends_on:
-      - datadog-agent
+      com.datadoghq.tags.version: ${APP_VERSION:?APP_VERSION is required}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   datadog-agent:
     image: gcr.io/datadoghq/agent:7
