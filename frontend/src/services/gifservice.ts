@@ -20,7 +20,10 @@ export class GifService {
         `page=${page}` +
         `&page_size=${page_size}` +
         `&sort_order=${sort_order}`,
-      { signal: abortSignal },
+      {
+        signal: abortSignal,
+        credentials: "include",
+      },
     );
     if (!response.ok) {
       const error = await response.json();
@@ -34,6 +37,7 @@ export class GifService {
     const response = await fetch(`${this.baseUrl}/gifs`, {
       method: "POST",
       body: formData,
+      credentials: "include",
     });
     if (!response.ok) {
       const error = await response.json();
@@ -46,6 +50,7 @@ export class GifService {
   async delete(gifId: number): Promise<void> {
     const response = await fetch(`${this.baseUrl}/gifs/${gifId}`, {
       method: "DELETE",
+      credentials: "include",
     });
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);

@@ -13,6 +13,7 @@ export const GifPage = () => {
     toggleSortOrder,
     handleDelete,
     handleLoadMore,
+    onLogOff,
   } = useGifs();
 
   return (
@@ -20,6 +21,7 @@ export const GifPage = () => {
       <div>
         <Header
           onSave={saveGif}
+          onLogOff={onLogOff}
           sortOrder={sortOrder}
           onToggleSortOrder={toggleSortOrder}
         ></Header>

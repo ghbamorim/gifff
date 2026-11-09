@@ -6,8 +6,10 @@ import {
 import { GifService } from "../../services/gifservice";
 import type { Gif, GifPage } from "../../types/types";
 import { PAGE_SIZE } from "../../services/gifservice";
+import { AuthService } from "../../services/auth";
 
 const gifService = new GifService();
+const authService = new AuthService();
 
 export const useGifs = () => {
   const [state, dispatch] = useReducer(gifTableReducer, initialState);
@@ -73,6 +75,11 @@ export const useGifs = () => {
     dispatch({ type: "sort_order_change", sortOrder: newSortOrder });
   }, [state.sortOrder]);
 
+  const onLogOff = async () => {
+    await authService.logout();
+    window.location.reload();
+  };
+
   const handleDelete = useCallback(async (gif_id: number) => {
     dispatch({ type: "deleting_started" });
     try {
@@ -87,5 +94,12 @@ export const useGifs = () => {
     }
   }, []);
 
-  return { ...state, toggleSortOrder, saveGif, handleDelete, handleLoadMore };
+  return {
+    ...state,
+    toggleSortOrder,
+    saveGif,
+    handleDelete,
+    handleLoadMore,
+    onLogOff,
+  };
 };
