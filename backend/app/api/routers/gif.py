@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 from typing import Annotated, Literal
 
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/gifs", tags=["Gif"])
 
 MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20 MB
 
+logger = logging.getLogger("uvicorn.error")
 
 @router.post("")
 async def create_gif(
@@ -80,6 +82,15 @@ async def get_gif(gif_id: int, request: Request, db: DbSession) -> Response:
     etag = f'"{gif_id}"'
 
     headers = {"Etag": etag, "Cache-control": "no-cache"}
+    
+    received_etag = request.headers.get("if-none-match")
+
+    logger.info(
+        "ETAG_DEBUG gif_id=%s header_present=%s etag_matches=%s",
+        gif_id,
+        received_etag is not None,
+        received_etag == etag,
+    )
 
     if (request.headers.get("if-none-match") == etag) and (
         await GifService.gif_exists(gif_id, db)

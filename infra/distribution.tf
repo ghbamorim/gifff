@@ -18,6 +18,12 @@ resource "aws_cloudfront_distribution" "app" {
 
     forwarded_values {
       query_string = true
+
+      headers = [
+        "If-None-Match",
+        "If-Modified-Since"
+      ]
+
       cookies {
         forward = "all"
       }
