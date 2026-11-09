@@ -14,6 +14,7 @@ from fastapi import (
     status,
 )
 
+from app.core.auth import CurrentUser
 from app.core.database import DbSession
 from app.models.gif import Gif
 from app.schemas.gif import GifCreate, GifResponse
@@ -28,7 +29,7 @@ logger = logging.getLogger("uvicorn.error")
 
 @router.post("")
 async def create_gif(
-    db: DbSession, files: Annotated[list[UploadFile], File()]
+    db: DbSession, files: Annotated[list[UploadFile], File()], _:CurrentUser
 ) -> list[GifResponse]:
 
     total_size = sum(file.size or 0 for file in files)
@@ -59,9 +60,11 @@ async def create_gif(
 @router.get("")
 async def get_gifs(
     db: DbSession,
+    _ : CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     sort_order: Literal["asc", "desc"] = Query("asc"),
+    
 ) -> Page[GifResponse]:
     result, total = await GifService.get_gifs(page, page_size, sort_order, db)
 
@@ -77,7 +80,11 @@ async def get_gifs(
 
 
 @router.get("/{gif_id}")
-async def get_gif(gif_id: int, request: Request, db: DbSession) -> Response:
+async def get_gif(
+    gif_id: int, 
+    request: Request,
+     _: CurrentUser,
+    db: DbSession) -> Response:
 
     etag = f'"{gif_id}"'
 
@@ -107,6 +114,6 @@ async def get_gif(gif_id: int, request: Request, db: DbSession) -> Response:
 
 
 @router.delete("/{gif_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_gif(gif_id: int, db: DbSession) -> Response:
+async def delete_gif(gif_id: int, _ : CurrentUser,db: DbSession) -> Response:
     await GifService.delete_gif(gif_id, db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

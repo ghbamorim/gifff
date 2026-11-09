@@ -11,3 +11,6 @@ httpx2
 pytest-anyio
 ruff
 ddtrace
+PyJWT
+pwdlib[argon2]
+email-validator
