@@ -171,6 +171,19 @@
         "iam:DeleteRolePolicy"
       ],
       "Resource": "arn:aws:iam::242627333067:role/aws-pratice-datadog-integration"
+    },
+    {
+      "Sid": "ManageACMCertificates",
+      "Effect": "Allow",
+      "Action": [
+        "acm:RequestCertificate",
+        "acm:DescribeCertificate",
+        "acm:ListCertificates",
+        "acm:DeleteCertificate",
+        "acm:AddTagsToCertificate",
+        "acm:ListTagsForCertificate"
+      ],
+      "Resource": "*"
     }
   ]
 }

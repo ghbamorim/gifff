@@ -52,6 +52,8 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: backend
+        env:
+          JWT_SECRET_KEY: test-secret-key-for-ci-only
         run: pytest
 
   frontend-lint:

@@ -9,6 +9,7 @@ describe("Header", () => {
         onSave={vi.fn()}
         sortOrder="asc"
         onToggleSortOrder={vi.fn()}
+        onLogOff={vi.fn()}
       ></Header>,
     );
     const element = screen.getByRole("button", { name: "SortOrder" });

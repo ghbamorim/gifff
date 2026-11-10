@@ -4,7 +4,11 @@
     {
       "Sid": "ReadEC2",
       "Effect": "Allow",
-      "Action": ["ec2:Describe*", "ec2:GetManagedPrefixListEntries"],
+      "Action": [
+        "ec2:Describe*",
+        "ec2:GetManagedPrefixListEntries",
+        "ec2:GetSecurityGroupsForVpc"
+      ],
       "Resource": "*"
     },
     {
@@ -106,8 +110,7 @@
         "s3:GetAccelerateConfiguration",
         "s3:GetBucketOwnershipControls",
         "s3:PutEncryptionConfiguration",
-        "s3:PutBucketVersioning",
-        "s3:GetBucketVersioning"
+        "s3:PutBucketVersioning"
       ],
       "Resource": "arn:aws:s3:::aws-pratice-attachments-*"
     },
@@ -185,6 +188,49 @@
       "Condition": {
         "StringLike": {
           "s3:prefix": ["migrations", "migrations/*"]
+        }
+      }
+    },
+    {
+      "Sid": "ManageApplicationLoadBalancer",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:CreateLoadBalancer",
+        "elasticloadbalancing:DeleteLoadBalancer",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:ModifyLoadBalancerAttributes",
+        "elasticloadbalancing:DescribeLoadBalancerAttributes",
+        "elasticloadbalancing:DescribeTags",
+        "elasticloadbalancing:AddTags",
+        "elasticloadbalancing:RemoveTags",
+        "elasticloadbalancing:CreateTargetGroup",
+        "elasticloadbalancing:DeleteTargetGroup",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:ModifyTargetGroup",
+        "elasticloadbalancing:ModifyTargetGroupAttributes",
+        "elasticloadbalancing:DescribeTargetGroupAttributes",
+        "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:CreateListener",
+        "elasticloadbalancing:DeleteListener",
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:ModifyListener",
+        "elasticloadbalancing:DescribeListenerAttributes",
+        "elasticloadbalancing:ModifyListenerAttributes",
+        "elasticloadbalancing:DescribeRules",
+        "elasticloadbalancing:DescribeAccountLimits"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowALBServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"
         }
       }
     }

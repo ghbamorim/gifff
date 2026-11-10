@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GifService } from "./gifservice";
 import { createGif } from "../test/factories";
+import { settings } from "../settings";
 
 describe("GifService", () => {
   const fetchMock = vi.spyOn(globalThis, "fetch");
@@ -22,7 +23,7 @@ describe("GifService", () => {
 
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
       "http://localhost:3000/gifs",
-      { method: "POST", body: formData },
+      { method: "POST", credentials: "include", body: formData },
     );
   });
 
@@ -39,8 +40,9 @@ describe("GifService", () => {
     const result = await gifService.getAll(1);
 
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
-      "/gifs?page=1&page_size=10&sort_order=asc",
+      `${settings.apiUrl}/gifs?page=1&page_size=10&sort_order=asc`,
       {
+        credentials: "include",
         signal: undefined,
       },
     );
@@ -85,9 +87,13 @@ describe("GifService", () => {
 
     await gifService.delete(1);
 
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("/gifs/1", {
-      method: "DELETE",
-    });
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+      `${settings.apiUrl}/gifs/1`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      },
+    );
   });
 
   it("raises an exception on invalid response from delete()", async () => {
