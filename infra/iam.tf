@@ -41,3 +41,17 @@ resource "aws_iam_role_policy" "rds_secret" {
     }]
   })
 }
+
+resource "aws_iam_role_policy" "jwt_secret" {
+  name = "gifff-jwt-secret-read"
+  role = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = aws_secretsmanager_secret.jwt.arn
+    }]
+  })
+}
