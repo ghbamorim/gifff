@@ -9,13 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
 from app.models.user import User
-from app.schemas.user import UserCreate, UserPatch, UserSearch, UserUpdate
+from app.schemas.user import UserCreate, UserPatch, UserUpdate
 
 T = TypeVar("T")
 
 
-class UserService():
-
+class UserService:
     @staticmethod
     def load_from_pydantic(
         model: T,
@@ -30,35 +29,10 @@ class UserService():
             setattr(model, field, value)
         return model
 
-
     @staticmethod
     async def get_users(db: AsyncSession) -> list[User]:
         stmt = select(User)
         result = await db.execute(stmt)
-
-        return list(result.scalars().all())
-
-    @staticmethod
-    async def search_by_email(search: str, db: AsyncSession) -> list[User]:
-        result = await db.execute(
-            select(User).where(User.email.ilike(search))
-        )
-
-        return list(result.scalars().all())
-
-    @staticmethod
-    async def search(keys: UserSearch, db: AsyncSession) -> list[User]:
-        filters = []
-
-        for field, value in keys.model_dump(exclude_unset=True).items():
-            column = getattr(User, field)
-
-            if isinstance(value, str):
-                filters.append(column.ilike(f"%{value}%"))
-            else:
-                filters.append(column == value)
-
-        result = await db.execute(select(User).where(*filters))
 
         return list(result.scalars().all())
 

@@ -49,6 +49,8 @@ async def get_me(current_user: CurrentUser) -> CurrentUserResponse:
 
 
 @router.delete("/session")
-async def logout(response: Response) -> LoginResponse:
+async def logout(
+    response: Response,
+) -> LoginResponse:
     response.delete_cookie(key=settings.auth_cookie_name, path="/")
     return LoginResponse(authenticated=False)

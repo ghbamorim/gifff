@@ -1,8 +1,9 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class BaseUser(BaseModel):    
+class BaseUser(BaseModel):
     email: str
+
 
 class UserCreate(BaseUser):
     password: str
@@ -16,16 +17,11 @@ class UserUpdate(BaseUser):
 
 class UserPatch(BaseModel):
     email: str | None = None
-    password: str | None = None    
-    is_active: bool | None = None
-
-
-class UserSearch(BaseModel):    
-    email: str | None = None        
+    password: str | None = None
     is_active: bool | None = None
 
 
 class UserResponse(BaseUser):
-    id: int    
+    id: int
     is_active: bool
     model_config = ConfigDict(from_attributes=True)

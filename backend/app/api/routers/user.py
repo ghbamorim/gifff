@@ -3,13 +3,13 @@ from fastapi import APIRouter, HTTPException, Response, status
 from app.core.auth import CurrentUser
 from app.core.database import DbSession
 from app.models.user import User
-from app.schemas.user import UserCreate, UserPatch, UserResponse, UserSearch, UserUpdate
+from app.schemas.user import UserCreate, UserPatch, UserResponse, UserUpdate
 from app.services.user import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("", response_model=UserResponse)
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     data: UserCreate,
     db: DbSession,
@@ -33,20 +33,6 @@ async def get_user(user_id: int, db: DbSession, _: CurrentUser) -> UserResponse:
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     return UserResponse.model_validate(user)
-
-
-@router.get("/by_name_or_email", response_model=list[UserResponse])
-async def search_users_by_name_or_email(
-    key: str, db: DbSession, _: CurrentUser
-) -> list[UserResponse]:
-    users = await UserService.search_by_email(f"%{key.lower()}%", db)
-    return [UserResponse.model_validate(user) for user in users]
-
-
-@router.get("/search", response_model=list[UserResponse])
-async def search(keys: UserSearch, db: DbSession, _: CurrentUser) -> list[UserResponse]:
-    users = await UserService.search(keys, db)
-    return [UserResponse.model_validate(user) for user in users]
 
 
 @router.put("/{user_id}", response_model=UserResponse)

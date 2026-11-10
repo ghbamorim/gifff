@@ -27,9 +27,10 @@ MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20 MB
 
 logger = logging.getLogger("uvicorn.error")
 
+
 @router.post("")
 async def create_gif(
-    db: DbSession, files: Annotated[list[UploadFile], File()], _:CurrentUser
+    db: DbSession, files: Annotated[list[UploadFile], File()], _: CurrentUser
 ) -> list[GifResponse]:
 
     total_size = sum(file.size or 0 for file in files)
@@ -60,11 +61,10 @@ async def create_gif(
 @router.get("")
 async def get_gifs(
     db: DbSession,
-    _ : CurrentUser,
+    _: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     sort_order: Literal["asc", "desc"] = Query("asc"),
-    
 ) -> Page[GifResponse]:
     result, total = await GifService.get_gifs(page, page_size, sort_order, db)
 
@@ -81,15 +81,13 @@ async def get_gifs(
 
 @router.get("/{gif_id}")
 async def get_gif(
-    gif_id: int, 
-    request: Request,
-     _: CurrentUser,
-    db: DbSession) -> Response:
+    gif_id: int, request: Request, _: CurrentUser, db: DbSession
+) -> Response:
 
     etag = f'"{gif_id}"'
 
     headers = {"Etag": etag, "Cache-control": "no-cache"}
-    
+
     received_etag = request.headers.get("if-none-match")
 
     logger.info(
@@ -102,7 +100,6 @@ async def get_gif(
     if (request.headers.get("if-none-match") == etag) and (
         await GifService.gif_exists(gif_id, db)
     ):
-
         return Response(status_code=304, headers=headers)
 
     gif = await GifService.get_gif(gif_id, db)
@@ -114,6 +111,6 @@ async def get_gif(
 
 
 @router.delete("/{gif_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_gif(gif_id: int, _ : CurrentUser,db: DbSession) -> Response:
+async def delete_gif(gif_id: int, _: CurrentUser, db: DbSession) -> Response:
     await GifService.delete_gif(gif_id, db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
