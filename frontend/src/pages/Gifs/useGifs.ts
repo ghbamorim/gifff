@@ -6,7 +6,7 @@ import {
 import { GifService } from "../../services/gifservice";
 import type { Gif, GifPage } from "../../types/types";
 import { PAGE_SIZE } from "../../services/gifservice";
-import { AuthService } from "../../services/auth";
+import { AuthService } from "../../services/authService";
 
 const gifService = new GifService();
 const authService = new AuthService();

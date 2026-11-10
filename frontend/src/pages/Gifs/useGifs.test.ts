@@ -4,6 +4,7 @@ import { GifService, PAGE_SIZE } from "../../services/gifservice";
 import { createGif } from "../../test/factories";
 import type { GifPage } from "../../types/types";
 import { useGifs } from "./useGifs";
+import { AuthService } from "../../services/authService";
 
 vi.mock("../../services/gifservice");
 
@@ -201,4 +202,16 @@ describe("useGifs", () => {
       expect(result.current.error).toBe(errorDescription);
     },
   );
+
+  it("should logoff", async () => {
+    const logout = vi
+      .spyOn(AuthService.prototype, "logout")
+      .mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useGifs());
+
+    await act(() => result.current.onLogOff());
+
+    expect(logout).toHaveBeenCalledOnce();
+  });
 });

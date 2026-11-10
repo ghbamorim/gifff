@@ -4,7 +4,7 @@ import "./App.css";
 import { ErrorFallback } from "./components/ErrorFallback/ErrorFallback";
 import { GifPage } from "./pages/Gifs/GifPage";
 import { LoginPage } from "./pages/Gifs/Login/LoginPage";
-import { AuthService } from "./services/auth";
+import { AuthService } from "./services/authService";
 
 const authService = new AuthService();
 
