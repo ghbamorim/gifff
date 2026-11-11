@@ -146,7 +146,7 @@ def test_get_gif(test_client: TestClient, mock_gif_service: MagicMock) -> None:
     assert response.content == gif1.data
     assert response.status_code == status.HTTP_200_OK
     assert response.headers["etag"] == f'"{gif1.id}"'
-    assert response.headers["cache-control"] == "no-cache"
+    assert response.headers["cache-control"] == "private, no-cache"
     mock_gif_service.gif_exists.assert_not_awaited()
 
     # second attempt, must tell to use http cache

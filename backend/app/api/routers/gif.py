@@ -86,7 +86,7 @@ async def get_gif(
 
     etag = f'"{gif_id}"'
 
-    headers = {"Etag": etag, "Cache-control": "no-cache"}
+    headers = {"Etag": etag, "Cache-control": "private, no-cache"}
 
     received_etag = request.headers.get("if-none-match")
 
