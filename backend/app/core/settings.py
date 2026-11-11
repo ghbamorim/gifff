@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     postgres_port: int
 
     database_pool_size: int = 10
-    database_pool_max_overflow: int = 5    
+    database_pool_max_overflow: int = 5
 
     jwt_secret_key: SecretStr
     jwt_algorithm: str = "HS256"
