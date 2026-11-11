@@ -3,6 +3,7 @@ import logging
 import math
 from typing import Annotated, Literal
 
+from ddtrace.trace import tracer
 from fastapi import (
     APIRouter,
     File,
@@ -83,10 +84,14 @@ async def get_gifs(
 async def get_gif(
     gif_id: int, request: Request, _: CurrentUser, db: DbSession
 ) -> Response:
+    span = tracer.current_root_span()
+
+    if span:
+        span.set_tag("gif.id", str(gif_id))
 
     etag = f'"{gif_id}"'
 
-    headers = {"Etag": etag, "Cache-control": "private, no-cache"}   
+    headers = {"Etag": etag, "Cache-control": "private, no-cache"}
 
     if (request.headers.get("if-none-match") == etag) and (
         await GifService.gif_exists(gif_id, db)
