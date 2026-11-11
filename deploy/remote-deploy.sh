@@ -71,6 +71,13 @@ APP_IMAGE=$(python3 -c 'import json,base64,os; print(json.loads(base64.b64decode
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$REGISTRY"
 docker pull "$APP_IMAGE"
 
+echo "Running database migrations..."
+
+docker compose --env-file .env -p gifff run --rm --no-deps \
+  --entrypoint alembic gifff upgrade head
+
+echo "Database migrations completed."
+
 # Remove the legacy standalone container only when it is not Compose-managed.
 if docker inspect gifff >/dev/null 2>&1; then
     PROJECT=$(docker inspect gifff --format '{{ index .Config.Labels "com.docker.compose.project" }}')

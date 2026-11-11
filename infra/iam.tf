@@ -55,3 +55,21 @@ resource "aws_iam_role_policy" "jwt_secret" {
     }]
   })
 }
+
+resource "aws_iam_role_policy" "gifff_seed_secret" {
+  name = "gifff-seed-secret"
+  role = "gifff-ec2-role"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = "arn:aws:secretsmanager:us-east-2:242627333067:secret:gifff/initial-user-password-??????"
+      }
+    ]
+  })
+}
