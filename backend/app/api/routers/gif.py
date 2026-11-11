@@ -86,7 +86,7 @@ async def get_gif(
 ) -> Response:
     span = tracer.current_root_span()
 
-    if span:
+    if span is not None:  # pragma: no cover
         span.set_tag("gif.id", str(gif_id))
 
     etag = f'"{gif_id}"'
