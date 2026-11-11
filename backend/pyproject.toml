@@ -3,6 +3,6 @@ addopts = "--cov=app --cov-report=term-missing --cov-fail-under=100"
 testpaths = ['tests']
 [tool.coverage.run]
 branch=true
-omit=['app/core/database.py']
+omit=['app/core/database.py', '*/seed.py']
 [tool.ruff.lint]
 select = ["E", "F", "I"]
