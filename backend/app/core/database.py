@@ -9,10 +9,9 @@ from app.core.settings import settings
 engine = create_async_engine(
     settings.database_url,
     echo=False,
-    pool_size=10,
-    max_overflow=5,
-    pool_pre_ping=True,
-    echo_pool="debug",
+    pool_size=settings.database_pool_size,
+    max_overflow=settings.database_pool_max_overflow,
+    pool_pre_ping=True,    
 )
 
 SessionLocal = async_sessionmaker(
