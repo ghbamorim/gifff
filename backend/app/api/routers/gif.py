@@ -86,16 +86,7 @@ async def get_gif(
 
     etag = f'"{gif_id}"'
 
-    headers = {"Etag": etag, "Cache-control": "no-cache"}
-
-    received_etag = request.headers.get("if-none-match")
-
-    logger.info(
-        "ETAG_DEBUG gif_id=%s header_present=%s etag_matches=%s",
-        gif_id,
-        received_etag is not None,
-        received_etag == etag,
-    )
+    headers = {"Etag": etag, "Cache-control": "private, no-cache"}   
 
     if (request.headers.get("if-none-match") == etag) and (
         await GifService.gif_exists(gif_id, db)
