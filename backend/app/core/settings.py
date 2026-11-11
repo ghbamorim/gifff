@@ -11,8 +11,11 @@ class Settings(BaseSettings):
     postgres_host: str
     postgres_port: int
 
+    database_echo: bool = False
     database_pool_size: int = 10
     database_pool_max_overflow: int = 5
+    database_pool_pre_ping: bool = True
+    database_echo_pool: str = "debug"
 
     jwt_secret_key: SecretStr
     jwt_algorithm: str = "HS256"

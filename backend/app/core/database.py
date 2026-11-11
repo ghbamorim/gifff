@@ -14,10 +14,11 @@ logger = logging.getLogger("uvicorn.error")
 
 engine = create_async_engine(
     settings.database_url,
-    echo=False,
+    echo=settings.database_echo,
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_pool_max_overflow,
-    pool_pre_ping=True,
+    pool_pre_ping=settings.database_pool_pre_ping,
+    echo_pool=settings.database_echo_pool,
 )
 
 pool = engine.sync_engine.pool
