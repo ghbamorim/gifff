@@ -40,8 +40,7 @@ resource "aws_cloudfront_distribution" "app" {
       query_string = true
 
       headers = [
-        "If-None-Match",
-        "If-Modified-Since"
+        "If-None-Match"
       ]
 
       cookies {
