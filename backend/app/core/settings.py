@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,7 +16,7 @@ class Settings(BaseSettings):
     database_pool_size: int = 10
     database_pool_max_overflow: int = 5
     database_pool_pre_ping: bool = True
-    database_echo_pool: str = "debug"
+    database_echo_pool: None | bool | Literal["debug"] = False
 
     jwt_secret_key: SecretStr
     jwt_algorithm: str = "HS256"
