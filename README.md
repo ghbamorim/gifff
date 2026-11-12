@@ -11,7 +11,7 @@ A private, full-stack application for uploading, browsing, and managing GIFs and
 | Frontend | React, TypeScript, Vite, Sass |
 | Database | PostgreSQL 17 (local Docker), Amazon RDS (AWS) |
 | Tests | Pytest, pytest-cov, Ruff, Vitest, Testing Library, ESLint |
-| Delivery | Docker, Compose, GitHub Actions, Amazon ECR, EC2, SSM, Secrets Manager |
+| Infrastructure | Terraform, VPC, ALB, ACM, EC2, RDS, ECR, SSM, Secrets Manager, GitHub Actions |
 | Observability | Datadog APM, container logs, SQLAlchemy pool monitoring |
 
 ## Features
@@ -37,12 +37,16 @@ backend/               FastAPI application, Alembic migrations, tests
   app/services/        Business logic
   app/seed.py          AWS-specific initial-user bootstrap
 frontend/              React and TypeScript application and tests
+infra/                 Terraform-managed AWS infrastructure
+  bootstrap/          Terraform state and IAM bootstrap
+  alb.tf              HTTPS listener, HTTP redirect and target group
+  network.tf          VPC, public/private subnets and routing
+  security.tf         ALB, EC2 and RDS security groups
 deploy/                AWS production Compose and SSM deployment script
 .github/workflows/     Pull request checks and release deployment
 Dockerfile             Multi-stage Node/Python container build
 compose.yaml           Shared local PostgreSQL service
 compose.dev.yaml       Development database port and volume
-compose.prod.yaml      Standalone Docker Compose application
 ```
 
 ## Local development
@@ -143,18 +147,19 @@ The repository configures **100% coverage thresholds** for measured backend/fron
 
 ## Deployment
 
-The repository has **two separate Compose paths**.
+### Infrastructure as code
 
-### Standalone Docker Compose
+The `infra/` directory defines the AWS environment using Terraform. The `infra/bootstrap/` directory contains separate bootstrap resources for Terraform state and IAM. The main configuration includes:
 
-`compose.yaml` plus `compose.prod.yaml` runs an app container and local PostgreSQL. Adapt `.env.prod.example` and supply all required database variables, `APP_VERSION`, `APP_PORT` and `JWT_SECRET_KEY`:
+- A VPC with two private subnets for RDS and two public subnets for the internet-facing Application Load Balancer (ALB).
+- An EC2 `t3.micro` instance in a public subnet, with inbound HTTP traffic restricted by its security group to the ALB.
+- A private PostgreSQL 17 RDS instance (`db.t4g.micro`) with encrypted storage, managed master password, backups and deletion protection.
+- An ALB HTTP listener redirecting port 80 to HTTPS on port 443; the HTTPS listener uses an ACM certificate supplied through `acm_certificate_arn`.
+- IAM permissions, GitHub Actions OIDC integration, ECR, Secrets Manager access and Datadog-related permissions.
 
-```bash
-docker compose --env-file .env.prod \
-  -f compose.yaml -f compose.prod.yaml up --build -d
-```
+Terraform configuration describes the intended infrastructure; it does not by itself confirm that all resources have been applied. Configure the AWS providers, credentials, remote state and required ACM certificate ARN before applying it. Review planned changes and potential costs before provisioning.
 
-This mode is distinct from the AWS deployment.
+**Traffic path:** Client → ALB (HTTPS) → EC2 (HTTP port 80) → application container (port 8000) → private RDS (PostgreSQL port 5432). The ALB checks `/health` on its target group. The EC2 instance has a public IP, but its configured inbound application rule accepts traffic only from the ALB security group.
 
 ### AWS release workflow
 
@@ -167,9 +172,9 @@ Publishing a GitHub Release with a tag beginning in `v` triggers `.github/workfl
 5. The script retrieves RDS credentials, a JWT signing secret and the Datadog API key via AWS Secrets Manager, pulls the image, runs Alembic migrations and starts the Compose services.
 6. It checks containers and performs a local HTTP smoke test.
 
-The AWS Compose file (`deploy/compose.yaml`) runs the application and a Datadog Agent. Required AWS IAM, OIDC, SSM, EC2, RDS and Secrets Manager resources must be provisioned separately.
+The AWS Compose file (`deploy/compose.yaml`) runs the application and a Datadog Agent. The supporting AWS infrastructure is defined in `infra/`, while the release workflow deploys application images to the existing EC2 instance.
 
-**Production considerations:** `deploy/compose.yaml` binds host port 80. Restrict ingress at the infrastructure level and configure HTTPS and secure session cookies as appropriate. The checked-in backend currently calls `app.frontend()` when its built frontend directory exists; that method is not part of standard FastAPI. Confirm or correct the static-file serving implementation before relying on the production image.
+**Production considerations:** `deploy/compose.yaml` binds host port 80. Terraform configures HTTPS at the ALB and restricts EC2 application ingress to the ALB security group; verify deployed DNS, certificates and network rules. The current runtime settings default `AUTH_COOKIE_SECURE` to `false`, and the deployment Compose file does not override it: enable secure cookies for HTTPS use. The backend also calls `app.frontend()` when its built frontend directory exists; that method is not part of standard FastAPI. Correct or verify static-file serving before relying on the production image.
 
 ## Database monitoring
 
