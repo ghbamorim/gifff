@@ -30,7 +30,11 @@ async def create_connection() -> asyncpg.Connection:
 
         new_password = await db_credentials.get_password()
 
-        return await connect(new_password)
+        connection = await connect(new_password)
+
+        logger.info("DB_AUTH_RECOVERED: database credentials refreshed")
+
+        return connection
 
 
 async def connect(password: str) -> asyncpg.Connection:
