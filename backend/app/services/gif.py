@@ -1,7 +1,9 @@
+import hashlib
 from typing import Literal
 
 from fastapi import HTTPException, status
 from sqlalchemy import asc, desc, exists, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
 
@@ -12,26 +14,69 @@ from app.schemas.gif import GifCreate
 class GifService:
     @staticmethod
     async def create_gif(data: GifCreate, db: AsyncSession) -> Gif:
-        gif = Gif(**data.model_dump())
+        content_hash = hashlib.sha256(data.data).hexdigest()
+
+        stmt = select(Gif.id).where(Gif.content_hash == content_hash)
+        existing_id = await db.scalar(stmt)
+
+        if existing_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "This file already exists",
+                    "gif_id": existing_id,
+                    "filename": data.filename,
+                },
+            )
+
+        gif = Gif(
+            **data.model_dump(),
+            content_hash=content_hash,
+        )
+
         db.add(gif)
-        await db.flush()
+
+        try:
+            await db.flush()
+        except IntegrityError as exc:
+            constraint_name = getattr(
+                getattr(exc.orig, "__cause__", None),
+                "constraint_name",
+                None,
+            )
+
+            if constraint_name == "uq_images_content_hash":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "This file already exists",
+                        "filename": data.filename,
+                    },
+                ) from exc
+
+            raise
+
         return gif
 
     @staticmethod
     async def get_gifs(
-        page: int, page_size: int, sort_order: Literal["asc", "desc"], db: AsyncSession
+        page: int,
+        page_size: int,
+        sort_order: Literal["asc", "desc"],
+        db: AsyncSession,
     ) -> tuple[list[Gif], int]:
-
         total = await db.scalar(select(func.count()).select_from(Gif))
 
         order_func = asc if sort_order == "asc" else desc
-
         off_set = (page - 1) * page_size
 
         result = await db.scalars(
             select(Gif)
             .options(defer(Gif.data))
-            .order_by(order_func(Gif.created_at), order_func(Gif.id))
+            .order_by(
+                order_func(Gif.created_at),
+                order_func(Gif.id),
+            )
             .offset(off_set)
             .limit(page_size)
         )
@@ -41,9 +86,11 @@ class GifService:
     @staticmethod
     async def get_gif(gif_id: int, db: AsyncSession) -> Gif:
         gif = await db.get(Gif, gif_id)
+
         if gif is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Gif not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Gif not found",
             )
 
         return gif
@@ -51,12 +98,12 @@ class GifService:
     @staticmethod
     async def gif_exists(gif_id: int, db: AsyncSession) -> bool:
         stmt = select(exists().where(Gif.id == gif_id))
-
         exist = await db.scalar(stmt)
 
         if not exist:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Gif not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Gif not found",
             )
 
         return True
