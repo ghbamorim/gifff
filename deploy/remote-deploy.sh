@@ -21,7 +21,6 @@ def read_secret(secret_id):
         text=True,
     ).strip()
 
-rds = json.loads(read_secret(payload["rds_secret_arn"]))
 datadog_key = read_secret("gifff/datadog/api-key")
 if not datadog_key or datadog_key == "None":
     raise RuntimeError("Datadog API key is empty")
@@ -33,11 +32,12 @@ if not jwt_secret_key or jwt_secret_key == "None":
 values = {
     "APP_IMAGE": payload["image"],
     "APP_VERSION": payload["version"],
-    "POSTGRES_USER": rds["username"],
-    "POSTGRES_PASSWORD": rds["password"],
+    "POSTGRES_USER": payload["db_user"],
     "POSTGRES_DB": payload["db_name"],
     "POSTGRES_HOST": payload["db_host"],
     "POSTGRES_PORT": payload["db_port"],
+    "AWS_DB_SECRET_ARN": payload["rds_secret_arn"],
+    "AWS_DEFAULT_REGION": region,
     "DD_API_KEY": datadog_key,
     "JWT_SECRET_KEY": jwt_secret_key,
 }

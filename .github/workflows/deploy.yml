@@ -108,6 +108,7 @@ jobs:
               "image": f"{registry}/gifff:{version}",
               "version": version,
               "rds_secret_arn": db["MasterUserSecret"]["SecretArn"],
+              "db_user": db["MasterUsername"],
               "db_host": db["Endpoint"]["Address"],
               "db_port": str(db["Endpoint"]["Port"]),
               "db_name": db["DBName"],
