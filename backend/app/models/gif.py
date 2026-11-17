@@ -16,3 +16,4 @@ class Gif(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     data: Mapped[bytes] = mapped_column(LargeBinary)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)

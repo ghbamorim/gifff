@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     jwt_secret_key: SecretStr
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 60
+    jwt_access_token_expire_minutes: int = 60 * 24 * 7
 
     auth_cookie_name: str = "access_token"
     auth_cookie_secure: bool = False

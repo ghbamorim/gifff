@@ -12,8 +12,8 @@ def test_create_gif(test_client: TestClient, mock_gif_service: MagicMock) -> Non
     # arrange
 
     files = [
-        ("files", ("gif1.gif", b"GifContent", "image/gif")),
-        ("files", ("gif1.gif", b"GifContent", "image/gif")),
+        ("files", ("gif1.gif", b"GifContent1", "image/gif")),
+        ("files", ("gif2.gif", b"GifContent2", "image/gif")),
     ]
 
     gif1 = Gif(
