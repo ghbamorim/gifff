@@ -2,18 +2,50 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
+import asyncpg
 from fastapi import Depends
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import QueuePool
 
+from app.core.db_credentials import db_credentials
 from app.core.pool_monitor import PoolMonitor
 from app.core.settings import settings
 
 logger = logging.getLogger("uvicorn.error")
 
+
+async def create_connection() -> asyncpg.Connection:
+    password = await db_credentials.get_password()
+
+    try:
+        return await connect(password)
+    except asyncpg.InvalidPasswordError:
+        if settings.postgres_password is not None:
+            raise
+
+        logger.warning("DB_AUTH_FAILED: refreshing database credentials")
+
+        await db_credentials.invalidate(password)
+
+        new_password = await db_credentials.get_password()
+
+        return await connect(new_password)
+
+
+async def connect(password: str) -> asyncpg.Connection:
+    return await asyncpg.connect(
+        host=settings.postgres_host,
+        port=settings.postgres_port,
+        user=settings.postgres_user,
+        password=password,
+        database=settings.postgres_db,
+    )
+
+
 engine = create_async_engine(
     settings.database_url,
+    async_creator=create_connection,
     echo=settings.database_echo,
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_pool_max_overflow,

@@ -31,7 +31,7 @@ The application is intended for private use. Only store content you have the rig
 ```text
 backend/               FastAPI application, Alembic migrations, tests
   app/api/routers/     Authentication, GIF/media and user endpoints
-  app/core/            Database, settings, auth, pool monitor
+  app/core/            Database, credentials, settings, auth, pool monitor
   app/models/          SQLAlchemy models
   app/schemas/         Request and response schemas
   app/services/        Business logic
@@ -74,7 +74,7 @@ JWT_SECRET_KEY=replace-with-a-long-random-secret
 AUTH_COOKIE_SECURE=false
 ```
 
-Docker Compose also reads database variables from the shell or a **root-level** `.env` file. Supply the same `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` there. Never commit real secrets.
+Docker Compose also reads database variables from the shell or a **root-level** `.env` file. Supply the same `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `POSTGRES_PORT` there. Never commit real secrets. Local development continues to use `POSTGRES_PASSWORD`; the planned AWS credential-loading flow is described below.
 
 Start PostgreSQL from the repository root:
 
@@ -155,7 +155,7 @@ The `infra/` directory defines the AWS environment using Terraform. The `infra/b
 - An EC2 `t3.micro` instance in a public subnet, with inbound HTTP traffic restricted by its security group to the ALB.
 - A private PostgreSQL 17 RDS instance (`db.t4g.micro`) with encrypted storage, managed master password, backups and deletion protection.
 - An ALB HTTP listener redirecting port 80 to HTTPS on port 443; the HTTPS listener uses an ACM certificate supplied through `acm_certificate_arn`.
-- IAM permissions, GitHub Actions OIDC integration, ECR, Secrets Manager access and Datadog-related permissions.
+- IAM permissions, GitHub Actions OIDC integration, ECR, Secrets Manager access and Datadog-related permissions. The EC2 instance profile has permission to read the RDS master secret.
 
 Terraform configuration describes the intended infrastructure; it does not by itself confirm that all resources have been applied. Configure the AWS providers, credentials, remote state and required ACM certificate ARN before applying it. Review planned changes and potential costs before provisioning.
 
@@ -169,10 +169,26 @@ Publishing a GitHub Release with a tag beginning in `v` triggers `.github/workfl
 2. The workflow builds the multi-stage Docker image and pushes `gifff:<tag>` to ECR in `us-east-2`.
 3. It locates the running EC2 instance tagged `Name=gifff-app` and RDS instance `gifff-postgres`.
 4. AWS Systems Manager runs `deploy/remote-deploy.sh` on EC2.
-5. The script retrieves RDS credentials, a JWT signing secret and the Datadog API key via AWS Secrets Manager, pulls the image, runs Alembic migrations and starts the Compose services.
+5. The script currently retrieves the RDS master password, a JWT signing secret and the Datadog API key from AWS Secrets Manager, writes the production Compose environment, pulls the image, runs Alembic migrations and starts the Compose services.
 6. It checks containers and performs a local HTTP smoke test.
 
 The AWS Compose file (`deploy/compose.yaml`) runs the application and a Datadog Agent. The supporting AWS infrastructure is defined in `infra/`, while the release workflow deploys application images to the existing EC2 instance.
+
+### RDS credentials and password rotation
+
+RDS manages the PostgreSQL master password in AWS Secrets Manager. In the currently committed deployment implementation, `deploy/remote-deploy.sh` reads that password at deploy time and writes `POSTGRES_PASSWORD` to the production `.env`; `deploy/compose.yaml` passes it to the application. **This does not automatically refresh credentials when RDS rotates the password.**
+
+The credential-rotation change under development is intended to:
+
+- Continue using `POSTGRES_PASSWORD` from `backend/.env` for local development.
+- Pass `AWS_DB_SECRET_ARN` and `AWS_DEFAULT_REGION` to the application container in AWS, without passing `POSTGRES_PASSWORD`.
+- Read the current password (`AWSCURRENT`) from Secrets Manager through the EC2 instance profile, cache it in the application, and refresh it when a new database connection fails with PostgreSQL error `28P01` (invalid password).
+- Retry opening a physical database connection only once with refreshed credentials; do not automatically replay a database transaction.
+- Use the same credential-aware connection creation for Alembic migrations and application connections.
+
+The EC2 metadata endpoint is configured with IMDSv2 (`HttpTokens=required`) and hop limit `2` to support instance-profile credential retrieval from Docker in the current network configuration. The EC2 role already includes `secretsmanager:GetSecretValue` for the RDS secret. These settings alone do not prove runtime access: confirm that the container can retrieve its AWS identity and read the secret before relying on rotation recovery.
+
+**Status:** The rotation-aware application and deployment changes must be merged, deployed, and tested. Do not treat automatic credential refresh as production-verified until these checks pass.
 
 **Production considerations:** `deploy/compose.yaml` binds host port 80. Terraform configures HTTPS at the ALB and restricts EC2 application ingress to the ALB security group; verify deployed DNS, certificates and network rules. The current runtime settings default `AUTH_COOKIE_SECURE` to `false`, and the deployment Compose file does not override it: enable secure cookies for HTTPS use. The backend also calls `app.frontend()` when its built frontend directory exists; that method is not part of standard FastAPI. Correct or verify static-file serving before relying on the production image.
 
