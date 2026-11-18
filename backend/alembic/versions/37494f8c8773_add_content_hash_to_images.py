@@ -5,14 +5,12 @@ Revises: 4510bf14df7f
 Create Date: 2026-11-17 16:11:01.353734
 """
 
-import hashlib
 from typing import Sequence, Union
 
 import sqlalchemy as sa
 
 from alembic import op
 
-# revision identifiers, used by Alembic.
 revision: str = "37494f8c8773"
 down_revision: Union[str, Sequence[str], None] = "4510bf14df7f"
 branch_labels: Union[str, Sequence[str], None] = None
@@ -20,36 +18,36 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    connection = op.get_bind()
+
+    op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+
     op.add_column(
         "images",
         sa.Column("content_hash", sa.String(64), nullable=True),
     )
 
-    connection = op.get_bind()
-
-    images = connection.execute(sa.text("SELECT id, data FROM images ORDER BY id"))
-
-    seen_hashes: set[str] = set()
-
-    for image_id, data in images:
-        content_hash = hashlib.sha256(data).hexdigest()
-
-        if content_hash in seen_hashes:
-            connection.execute(
-                sa.text("DELETE FROM images WHERE id = :id"),
-                {"id": image_id},
-            )
-            continue
-
-        seen_hashes.add(content_hash)
-
-        connection.execute(
-            sa.text("UPDATE images SET content_hash = :content_hash WHERE id = :id"),
-            {
-                "content_hash": content_hash,
-                "id": image_id,
-            },
+    # Calculate hashes directly in PostgreSQL.
+    connection.execute(
+        sa.text(
+            """
+            UPDATE images
+            SET content_hash = encode(digest(data, 'sha256'), 'hex')
+            """
         )
+    )
+
+    # Delete duplicates, keeping the row with the lowest ID.
+    connection.execute(
+        sa.text(
+            """
+            DELETE FROM images AS duplicate
+            USING images AS original
+            WHERE duplicate.content_hash = original.content_hash
+              AND duplicate.id > original.id
+            """
+        )
+    )
 
     op.alter_column(
         "images",
